@@ -697,6 +697,7 @@ name = "bevy_gh_ci"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "uuid",
 ]
 
 [[package]]
