@@ -1,8 +1,16 @@
-[package]
-name = "bevy_gh_ci"
+[workspace]
+members = ["crates/kernel", "crates/app"]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0 OR CC0-1.0"
+
+[workspace.dependencies]
+bevy = "0.18"
+uuid = { version = "1", features = ["v4"] }
+kernel = { path = "crates/kernel" }
 
 # Compile with Performance Optimizations:
 # https://bevyengine.org/learn/book/getting-started/setup/#compile-with-performance-optimizations
@@ -15,15 +23,11 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
 
-[dependencies]
-bevy = "0.18"
-uuid = { version = "1", features = ["v4"] }
-
 # These lints may be important signals about code quality, but normal Bevy code
 # commonly triggers them and the CI workflow treats them as errors, so we've
 # chosen to allow them in this template.
 #
 # Feel free to delete the following lines.
-[lints.clippy]
+[workspace.lints.clippy]
 too_many_arguments = "allow"
 type_complexity = "allow"
