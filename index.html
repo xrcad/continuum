@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>bevy-gh-ci</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <script type="module">
+    import './restart-audio-context.js'
+    import init from './bevy_game.js'
+
+    init().catch((error) => {
+      if (!error.message.startsWith("Using exceptions for control flow, don't mind me. This isn't actually an error!")) {
+        throw error;
+      }
+    });
+  </script>
+</body>
+
+</html>
