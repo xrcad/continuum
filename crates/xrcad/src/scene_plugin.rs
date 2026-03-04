@@ -1,3 +1,4 @@
+use std::f32::consts::FRAC_PI_2;
 use std::f32::consts::PI;
 
 use bevy::{
@@ -6,18 +7,55 @@ use bevy::{
     prelude::*,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
+use xrcad_input::{InputPlugins, OrbitDelta, PanDelta};
 
 pub struct ScenePlugin;
 
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup).add_systems(Update, rotate);
+        app.add_plugins(InputPlugins::new().with_touch())
+            .add_systems(Startup, setup)
+            .add_systems(Update, (rotate, update_camera));
     }
 }
 
 /// Marker component used by the `rotate` system to identify shapes that should continuously rotate.
 #[derive(Component)]
 struct Shape;
+
+/// Spherical-coordinate orbit state attached to the camera entity.
+///
+/// Camera position is computed as:
+/// ```
+/// x = target.x + distance * cos(elevation) * sin(azimuth)
+/// y = target.y + distance * sin(elevation)
+/// z = target.z + distance * cos(elevation) * cos(azimuth)
+/// ```
+#[derive(Component)]
+struct OrbitCamera {
+    /// Point the camera orbits around and looks at.
+    target: Vec3,
+    /// Rotation around the world Y-axis in radians.
+    azimuth: f32,
+    /// Angle above the horizontal plane in radians. Clamped away from 0 and ±90°.
+    elevation: f32,
+    /// Distance from target to camera in world units.
+    distance: f32,
+}
+
+impl OrbitCamera {
+    fn compute_transform(&self) -> Transform {
+        let (sin_az, cos_az) = self.azimuth.sin_cos();
+        let (sin_el, cos_el) = self.elevation.sin_cos();
+        let pos = self.target
+            + Vec3::new(
+                self.distance * cos_el * sin_az,
+                self.distance * sin_el,
+                self.distance * cos_el * cos_az,
+            );
+        Transform::from_translation(pos).looking_at(self.target, Vec3::Y)
+    }
+}
 
 fn setup(
     mut commands: Commands,
@@ -71,16 +109,50 @@ fn setup(
         MeshMaterial3d(materials.add(Color::from(SILVER))),
     ));
 
-    commands.spawn((
-        Camera3d::default(),
-        Transform::from_xyz(0.0, 6., 12.0).looking_at(Vec3::new(0., 1., 0.), Vec3::Y),
-    ));
+    // Orbit state that matches the original camera position:
+    //   camera (0, 6, 12) → target (0, 1, 0)
+    //   distance = 13, azimuth = 0, elevation = asin(5/13) ≈ 0.395 rad
+    let orbit = OrbitCamera {
+        target: Vec3::new(0.0, 1.0, 0.0),
+        azimuth: 0.0,
+        elevation: (5.0_f32 / 13.0_f32).asin(),
+        distance: 13.0,
+    };
+    let transform = orbit.compute_transform();
+    commands.spawn((Camera3d::default(), transform, orbit));
 }
 
 fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
     for mut transform in &mut query {
         transform.rotate_y(time.delta_secs() / 2.);
     }
+}
+
+/// Reads `OrbitDelta` and `PanDelta` events from the touch adapter and
+/// updates the camera transform each frame.
+fn update_camera(
+    mut orbit_events: EventReader<OrbitDelta>,
+    mut pan_events: EventReader<PanDelta>,
+    mut cameras: Query<(&mut OrbitCamera, &mut Transform)>,
+) {
+    let Ok((mut cam, mut transform)) = cameras.get_single_mut() else {
+        return;
+    };
+
+    for ev in orbit_events.read() {
+        cam.azimuth += ev.azimuth;
+        cam.elevation = (cam.elevation + ev.elevation).clamp(0.05, FRAC_PI_2 - 0.05);
+    }
+
+    for ev in pan_events.read() {
+        // Camera-relative right and forward axes projected onto the ground plane.
+        let (sin_az, cos_az) = cam.azimuth.sin_cos();
+        let right = Vec3::new(cos_az, 0.0, -sin_az);
+        let forward = Vec3::new(-sin_az, 0.0, -cos_az);
+        cam.target += right * ev.dx + forward * ev.dz;
+    }
+
+    *transform = cam.compute_transform();
 }
 
 fn uv_debug_texture() -> Image {
