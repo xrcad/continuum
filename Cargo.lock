@@ -5832,6 +5832,7 @@ name = "xrcad"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "xrcad-input",
  "xrcad-kernel",
 ]
 
