@@ -223,9 +223,23 @@ fn reconnect_key(keys: Res<ButtonInput<KeyCode>>, mut client: ResMut<NetClient>)
 
 // ── URL derivation ─────────────────────────────────────────────────────────────
 
+/// Derive the WebSocket relay URL.
+///
+/// **Priority order (WASM)**:
+/// 1. `?relay=wss://...` query parameter in the page URL — lets you point a
+///    GitHub Pages build at any separately-hosted relay server.
+/// 2. Same origin as the page (only works when you self-host with
+///    `xrcad-server`; GitHub Pages cannot serve WebSockets).
+///
+/// **Native**: `ws://localhost:8080/relay/room/default`.
 fn derive_relay_url() -> String {
     #[cfg(target_arch = "wasm32")]
     {
+        // Check for an explicit ?relay=<url> query parameter first.
+        if let Some(relay) = relay_from_query_param() {
+            return relay;
+        }
+
         let origin = web_sys::window()
             .and_then(|w| w.location().origin().ok())
             .unwrap_or_else(|| "http://localhost:8080".to_string());
@@ -237,5 +251,60 @@ fn derive_relay_url() -> String {
     #[cfg(not(target_arch = "wasm32"))]
     {
         "ws://localhost:8080/relay/room/default".to_string()
+    }
+}
+
+/// Parse the `relay` query parameter from the current page URL, e.g.:
+/// `https://user.github.io/xrcad/?relay=wss://myserver.example.com/relay/room/default`
+#[cfg(target_arch = "wasm32")]
+fn relay_from_query_param() -> Option<String> {
+    let search = web_sys::window()?.location().search().ok()?;
+    // `search` looks like "?relay=wss://..." or "?foo=bar&relay=wss://..."
+    let query = search.trim_start_matches('?');
+    for pair in query.split('&') {
+        if let Some(value) = pair.strip_prefix("relay=") {
+            if !value.is_empty() {
+                // URL-decode the value (handle %3A → ':', %2F → '/', etc.)
+                let decoded = url_decode(value);
+                info!("xrcad-net: relay URL overridden by query param: {decoded}");
+                return Some(decoded);
+            }
+        }
+    }
+    None
+}
+
+/// Minimal percent-decoder — handles the characters that typically appear in
+/// WebSocket URLs (`%3A` → `:`, `%2F` → `/`, `%40` → `@`, `%3F` → `?`).
+#[cfg(target_arch = "wasm32")]
+fn url_decode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let b = s.as_bytes();
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'%' && i + 2 < b.len() {
+            if let (Some(h), Some(l)) = (hex_val(b[i + 1]), hex_val(b[i + 2])) {
+                out.push((h << 4 | l) as char);
+                i += 3;
+                continue;
+            }
+        } else if b[i] == b'+' {
+            out.push(' ');
+            i += 1;
+            continue;
+        }
+        out.push(b[i] as char);
+        i += 1;
+    }
+    out
+}
+
+#[cfg(target_arch = "wasm32")]
+fn hex_val(b: u8) -> Option<u8> {
+    match b {
+        b'0'..=b'9' => Some(b - b'0'),
+        b'a'..=b'f' => Some(b - b'a' + 10),
+        b'A'..=b'F' => Some(b - b'A' + 10),
+        _ => None,
     }
 }
