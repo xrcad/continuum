@@ -34,6 +34,12 @@ impl<T> Id<T> {
 
 // Manual impls — no `T: Trait` bounds, since T is only a phantom.
 
+impl<T> Default for Id<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> Clone for Id<T> {
     fn clone(&self) -> Self {
         *self
