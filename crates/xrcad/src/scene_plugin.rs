@@ -135,7 +135,7 @@ fn update_camera(
     mut pan_events: MessageReader<PanDelta>,
     mut cameras: Query<(&mut OrbitCamera, &mut Transform)>,
 ) {
-    let Ok((mut cam, mut transform)) = cameras.get_single_mut() else {
+    let Ok((mut cam, mut transform)) = cameras.single_mut() else {
         return;
     };
 
