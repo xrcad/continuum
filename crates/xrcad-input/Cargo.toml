@@ -1,12 +1,11 @@
 [package]
-name = "continuum"
+name = "xrcad-input"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
 bevy = { workspace = true }
-kernel = { workspace = true }
 
 [lints]
 workspace = true

@@ -1,18 +1,6 @@
-mod id;
-mod topology;
-
-pub use id::Id;
-pub use topology::{
-    Edge, EdgeId, Face, FaceId, Loop, LoopId, Shell, ShellId, Solid, SolidId, Vertex, VertexId,
-};
-
 use bevy::prelude::*;
 use std::collections::HashMap;
-
-// ---------------------------------------------------------------------------
-// Bevy glue — lives here rather than in `id` or `topology` so those modules
-// stay free of any Bevy dependency.
-// ---------------------------------------------------------------------------
+use xrcad_kernel::brep::Id;
 
 /// Attaches a B-Rep `Id<T>` to a Bevy entity as a component.
 #[derive(Component)]
@@ -21,7 +9,7 @@ pub struct BRepId<T: Send + Sync + 'static>(pub Id<T>);
 /// Bidirectional `Id<T>` ↔ `Entity` map, stored as a Bevy resource.
 ///
 /// Insert one `BRepRegistry<T>` per element type that needs lookup:
-/// ```rust
+/// ```rust,ignore
 /// app.init_resource::<BRepRegistry<Vertex>>();
 /// app.init_resource::<BRepRegistry<Edge>>();
 /// // …

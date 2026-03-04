@@ -1,12 +1,12 @@
 [package]
-name = "kernel"
+name = "xrcad-data"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
 bevy = { workspace = true }
-uuid = { workspace = true }
+xrcad-kernel = { workspace = true }
 
 [lints]
 workspace = true

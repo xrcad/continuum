@@ -1,0 +1,1 @@
+// xrcad-io-obj — stub
