@@ -35,9 +35,7 @@ pub struct TouchInputPlugin;
 
 impl Plugin for TouchInputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_message::<OrbitDelta>()
-            .add_message::<PanDelta>()
-            .add_systems(PreUpdate, process_touch.after(InputSystems));
+        app.add_systems(PreUpdate, process_touch.after(InputSystems));
     }
 }
 
