@@ -131,8 +131,8 @@ fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
 /// Reads `OrbitDelta` and `PanDelta` events from the touch adapter and
 /// updates the camera transform each frame.
 fn update_camera(
-    mut orbit_events: EventReader<OrbitDelta>,
-    mut pan_events: EventReader<PanDelta>,
+    mut orbit_events: MessageReader<OrbitDelta>,
+    mut pan_events: MessageReader<PanDelta>,
     mut cameras: Query<(&mut OrbitCamera, &mut Transform)>,
 ) {
     let Ok((mut cam, mut transform)) = cameras.get_single_mut() else {

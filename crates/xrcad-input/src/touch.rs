@@ -2,12 +2,12 @@
 
 use std::collections::HashMap;
 
-use bevy::input::InputSystem;
+use bevy::input::InputSystems;
 use bevy::input::touch::{TouchInput, TouchPhase};
 use bevy::prelude::*;
 
 /// Orbit (azimuth / elevation) delta emitted by a single-finger drag.
-#[derive(Event, Debug, Clone, Copy)]
+#[derive(Message, Debug, Clone, Copy)]
 pub struct OrbitDelta {
     /// Azimuth change in radians — positive rotates the camera counter-clockwise around
     /// the scene when viewed from above.
@@ -17,7 +17,7 @@ pub struct OrbitDelta {
 }
 
 /// Ground-plane pan delta emitted by a two-finger drag.
-#[derive(Event, Debug, Clone, Copy)]
+#[derive(Message, Debug, Clone, Copy)]
 pub struct PanDelta {
     /// Displacement along the camera-right axis in world units.
     pub dx: f32,
@@ -32,9 +32,9 @@ pub struct TouchInputPlugin;
 
 impl Plugin for TouchInputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<OrbitDelta>()
-            .add_event::<PanDelta>()
-            .add_systems(PreUpdate, process_touch.after(InputSystem));
+        app.add_message::<OrbitDelta>()
+            .add_message::<PanDelta>()
+            .add_systems(PreUpdate, process_touch.after(InputSystems));
     }
 }
 
@@ -45,10 +45,10 @@ struct TouchTracker {
 }
 
 fn process_touch(
-    mut events: EventReader<TouchInput>,
+    mut events: MessageReader<TouchInput>,
     mut tracker: Local<TouchTracker>,
-    mut orbit_writer: EventWriter<OrbitDelta>,
-    mut pan_writer: EventWriter<PanDelta>,
+    mut orbit_writer: MessageWriter<OrbitDelta>,
+    mut pan_writer: MessageWriter<PanDelta>,
 ) {
     let all: Vec<TouchInput> = events.read().cloned().collect();
     if all.is_empty() {
@@ -104,11 +104,11 @@ fn process_touch(
     let avg = total_delta / moved as f32;
 
     match n {
-        1 => orbit_writer.send(OrbitDelta {
+        1 => orbit_writer.write(OrbitDelta {
             azimuth: -avg.x * ORBIT_SENSITIVITY,
             elevation: -avg.y * ORBIT_SENSITIVITY,
         }),
-        2 => pan_writer.send(PanDelta {
+        2 => pan_writer.write(PanDelta {
             dx: avg.x * PAN_SENSITIVITY,
             dz: -avg.y * PAN_SENSITIVITY,
         }),

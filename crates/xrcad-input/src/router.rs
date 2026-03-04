@@ -4,7 +4,7 @@ use super::roles::InputRole;
 use bevy::prelude::*;
 
 /// A routed input event tagged with its role.
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct RoleMessage {
     pub role: InputRole,
 }
