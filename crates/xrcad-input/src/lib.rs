@@ -29,13 +29,20 @@ impl Plugin for InputCorePlugin {
 /// Builder-pattern plugin group for all input device adapters.
 ///
 /// ```rust,no_run
-/// app.add_plugins(
-///     InputPlugins::new()
-///         .with_mouse()
-///         .with_keyboard()
-///         .with_touch()
-///         .with_voice()
-/// );
+/// use bevy::prelude::*;
+/// use xrcad_input::InputPlugins;
+///
+/// fn main() {
+///     App::new()
+///         .add_plugins(
+///             InputPlugins::new()
+///                 .with_mouse()
+///                 .with_keyboard()
+///                 .with_touch()
+///                 .with_voice()
+///         )
+///         .run();
+/// }
 /// ```
 #[derive(Default)]
 pub struct InputPlugins {
