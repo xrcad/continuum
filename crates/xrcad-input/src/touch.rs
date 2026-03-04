@@ -6,6 +6,9 @@ use bevy::input::InputSystems;
 use bevy::input::touch::{TouchInput, TouchPhase};
 use bevy::prelude::*;
 
+use crate::roles::role;
+use crate::router::RoleMessage;
+
 /// Orbit (azimuth / elevation) delta emitted by a single-finger drag.
 #[derive(Message, Debug, Clone, Copy)]
 pub struct OrbitDelta {
@@ -49,6 +52,7 @@ fn process_touch(
     mut tracker: Local<TouchTracker>,
     mut orbit_writer: MessageWriter<OrbitDelta>,
     mut pan_writer: MessageWriter<PanDelta>,
+    mut role_writer: MessageWriter<RoleMessage>,
 ) {
     let all: Vec<TouchInput> = events.read().cloned().collect();
     if all.is_empty() {
@@ -105,6 +109,9 @@ fn process_touch(
 
     match n {
         1 => {
+            role_writer.write(RoleMessage {
+                role: role::NAVIGATE,
+            });
             orbit_writer.write(OrbitDelta {
                 azimuth: -avg.x * ORBIT_SENSITIVITY,
                 elevation: -avg.y * ORBIT_SENSITIVITY,
