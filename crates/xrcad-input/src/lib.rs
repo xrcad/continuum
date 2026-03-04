@@ -12,6 +12,7 @@ mod voice;
 
 pub use roles::{InputRole, InputRoleConfig};
 pub use router::RoleMessage;
+pub use touch::{OrbitDelta, PanDelta};
 
 /// Core input plugin — role routing and event infrastructure.
 /// Always required; added automatically by [`InputPlugins`].
