@@ -8,11 +8,14 @@ pub struct InputRole(pub &'static str);
 
 pub mod role {
     use super::InputRole;
+    /// Single-finger orbit / camera navigation gesture.
     pub const NAVIGATE: InputRole = InputRole("navigate");
-    pub const SELECT: InputRole = InputRole("select");
-    pub const DRAW: InputRole = InputRole("draw");
-    pub const ERASE: InputRole = InputRole("erase");
-    pub const CONTEXT: InputRole = InputRole("context");
+    /// Two-finger ground-plane pan gesture.
+    pub const PAN: InputRole = InputRole("pan");
+    // pub const SELECT: InputRole = InputRole("select");
+    // pub const DRAW: InputRole   = InputRole("draw");
+    // pub const ERASE: InputRole  = InputRole("erase");
+    // pub const CONTEXT: InputRole = InputRole("context");
 }
 
 /// Resource mapping device matchers to roles.
