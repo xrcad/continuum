@@ -104,14 +104,14 @@ fn process_touch(
     let avg = total_delta / moved as f32;
 
     match n {
-        1 => orbit_writer.write(OrbitDelta {
+        1 => { orbit_writer.write(OrbitDelta {
             azimuth: -avg.x * ORBIT_SENSITIVITY,
             elevation: -avg.y * ORBIT_SENSITIVITY,
-        }),
-        2 => pan_writer.write(PanDelta {
+        }); }
+        2 => { pan_writer.write(PanDelta {
             dx: avg.x * PAN_SENSITIVITY,
             dz: -avg.y * PAN_SENSITIVITY,
-        }),
+        }); }
         _ => {}
     }
 }
