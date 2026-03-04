@@ -118,6 +118,7 @@ fn process_touch(
             });
         }
         2 => {
+            role_writer.write(RoleMessage { role: role::PAN });
             pan_writer.write(PanDelta {
                 dx: avg.x * PAN_SENSITIVITY,
                 dz: -avg.y * PAN_SENSITIVITY,
