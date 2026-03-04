@@ -1,4 +1,5 @@
 mod camera;
+mod peer_markers;
 mod scene_plugin;
 
 use bevy::{asset::AssetMetaCheck, prelude::*};

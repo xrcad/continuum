@@ -8,6 +8,8 @@ license.workspace = true
 bevy = { workspace = true }
 xrcad-kernel = { workspace = true }
 xrcad-input = { workspace = true }
+xrcad-net = { workspace = true }
+uuid = { workspace = true }
 
 [lints]
 workspace = true

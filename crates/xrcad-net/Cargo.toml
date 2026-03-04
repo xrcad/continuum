@@ -1,0 +1,18 @@
+[package]
+name = "xrcad-net"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bevy     = { workspace = true }
+serde    = { workspace = true }
+serde_json = { workspace = true }
+ewebsock = { workspace = true }
+uuid     = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { version = "0.3", features = ["Window", "Location"] }
+
+[lints]
+workspace = true
