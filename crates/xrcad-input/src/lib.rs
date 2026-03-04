@@ -20,7 +20,7 @@ pub struct InputCorePlugin;
 
 impl Plugin for InputCorePlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<RoleMessage>()
+        app.add_message::<RoleMessage>()
             .init_resource::<InputRoleConfig>()
             .add_systems(PreUpdate, router::route_input);
     }

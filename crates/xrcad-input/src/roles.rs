@@ -9,10 +9,10 @@ pub struct InputRole(pub &'static str);
 pub mod role {
     use super::InputRole;
     pub const NAVIGATE: InputRole = InputRole("navigate");
-    pub const SELECT:   InputRole = InputRole("select");
-    pub const DRAW:     InputRole = InputRole("draw");
-    pub const ERASE:    InputRole = InputRole("erase");
-    pub const CONTEXT:  InputRole = InputRole("context");
+    pub const SELECT: InputRole = InputRole("select");
+    pub const DRAW: InputRole = InputRole("draw");
+    pub const ERASE: InputRole = InputRole("erase");
+    pub const CONTEXT: InputRole = InputRole("context");
 }
 
 /// Resource mapping device matchers to roles.
