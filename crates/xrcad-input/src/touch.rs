@@ -75,8 +75,14 @@ fn process_touch(
         }
     }
 
-    // Skip gesture output on the frame the finger count changes to avoid position jumps.
+    // Even when the finger count changes, keep stored positions current for
+    // Moved events so the delta on the very next frame isn't inflated.
     if count_changed {
+        for ev in &all {
+            if ev.phase == TouchPhase::Moved && tracker.touches.contains_key(&ev.id) {
+                tracker.touches.insert(ev.id, ev.position);
+            }
+        }
         return;
     }
 
@@ -114,7 +120,7 @@ fn process_touch(
             });
             orbit_writer.write(OrbitDelta {
                 azimuth: -avg.x * ORBIT_SENSITIVITY,
-                elevation: -avg.y * ORBIT_SENSITIVITY,
+                elevation: avg.y * ORBIT_SENSITIVITY,
             });
         }
         2 => {

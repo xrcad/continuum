@@ -1,3 +1,4 @@
+mod camera;
 mod scene_plugin;
 
 use bevy::{asset::AssetMetaCheck, prelude::*};
