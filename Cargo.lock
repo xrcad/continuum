@@ -693,13 +693,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_gh_ci"
-version = "0.1.0"
-dependencies = [
- "bevy",
-]
-
-[[package]]
 name = "bevy_gilrs"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5833,6 +5826,102 @@ name = "xml-rs"
 version = "0.8.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"
+
+[[package]]
+name = "xrcad"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "xrcad-kernel",
+]
+
+[[package]]
+name = "xrcad-data"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "xrcad-kernel",
+]
+
+[[package]]
+name = "xrcad-editor"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "xrcad-data",
+]
+
+[[package]]
+name = "xrcad-input"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
+name = "xrcad-io-iges"
+version = "0.1.0"
+dependencies = [
+ "xrcad-kernel",
+]
+
+[[package]]
+name = "xrcad-io-obj"
+version = "0.1.0"
+dependencies = [
+ "xrcad-kernel",
+]
+
+[[package]]
+name = "xrcad-io-step"
+version = "0.1.0"
+dependencies = [
+ "xrcad-kernel",
+]
+
+[[package]]
+name = "xrcad-kernel"
+version = "0.1.0"
+dependencies = [
+ "uuid",
+]
+
+[[package]]
+name = "xrcad-script"
+version = "0.1.0"
+dependencies = [
+ "xrcad-kernel",
+]
+
+[[package]]
+name = "xrcad-ui"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
+name = "xrcad-viewer"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "xrcad-data",
+]
+
+[[package]]
+name = "xrcad-widgets"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "xrcad-ui",
+]
+
+[[package]]
+name = "xrcad-xr"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+]
 
 [[package]]
 name = "yazi"

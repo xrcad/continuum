@@ -1,8 +1,41 @@
-[package]
-name = "bevy_gh_ci"
+[workspace]
+members = [
+    "crates/xrcad-kernel",
+    "crates/xrcad-data",
+    "crates/xrcad-script",
+    "crates/xrcad-input",
+    "crates/xrcad-editor",
+    "crates/xrcad-viewer",
+    "crates/xrcad-ui",
+    "crates/xrcad-widgets",
+    "crates/xrcad-xr",
+    "crates/xrcad-io-step",
+    "crates/xrcad-io-iges",
+    "crates/xrcad-io-obj",
+    "crates/xrcad",
+]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0 OR CC0-1.0"
+
+[workspace.dependencies]
+bevy = "0.18"
+uuid = { version = "1", features = ["v4"] }
+xrcad-kernel = { path = "crates/xrcad-kernel" }
+xrcad-data = { path = "crates/xrcad-data" }
+xrcad-script = { path = "crates/xrcad-script" }
+xrcad-input = { path = "crates/xrcad-input" }
+xrcad-editor = { path = "crates/xrcad-editor" }
+xrcad-viewer = { path = "crates/xrcad-viewer" }
+xrcad-ui = { path = "crates/xrcad-ui" }
+xrcad-widgets = { path = "crates/xrcad-widgets" }
+xrcad-xr = { path = "crates/xrcad-xr" }
+xrcad-io-step = { path = "crates/xrcad-io-step" }
+xrcad-io-iges = { path = "crates/xrcad-io-iges" }
+xrcad-io-obj = { path = "crates/xrcad-io-obj" }
 
 # Compile with Performance Optimizations:
 # https://bevyengine.org/learn/book/getting-started/setup/#compile-with-performance-optimizations
@@ -15,14 +48,11 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
 
-[dependencies]
-bevy = "0.18"
-
 # These lints may be important signals about code quality, but normal Bevy code
 # commonly triggers them and the CI workflow treats them as errors, so we've
 # chosen to allow them in this template.
 #
 # Feel free to delete the following lines.
-[lints.clippy]
+[workspace.lints.clippy]
 too_many_arguments = "allow"
 type_complexity = "allow"

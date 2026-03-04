@@ -1,38 +1,22 @@
 use std::f32::consts::PI;
 
 use bevy::{
-    asset::{AssetMetaCheck, RenderAssetUsages},
+    asset::RenderAssetUsages,
     color::palettes::css::SILVER,
     prelude::*,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
 
-fn main() {
-    App::new()
-        .add_plugins(
-            DefaultPlugins
-                .set(AssetPlugin {
-                    // Wasm builds will check for meta files (that don't exist) if this isn't set.
-                    // This causes errors and even panics in web builds on itch.
-                    // See https://github.com/bevyengine/bevy_github_ci_template/issues/48.
-                    meta_check: AssetMetaCheck::Never,
-                    ..default()
-                })
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        // Fill the entire browser window for Wasm.
-                        fit_canvas_to_parent: true,
-                        ..default()
-                    }),
-                    ..default()
-                }),
-        )
-        .add_systems(Startup, setup)
-        .add_systems(Update, rotate)
-        .run();
+pub struct ScenePlugin;
+
+impl Plugin for ScenePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, setup)
+            .add_systems(Update, rotate);
+    }
 }
 
-/// Marker component used by the `rotate` system to identify 3D shapes that should continuously rotate.
+/// Marker component used by the `rotate` system to identify shapes that should continuously rotate.
 #[derive(Component)]
 struct Shape;
 
@@ -83,7 +67,6 @@ fn setup(
         Transform::from_xyz(8.0, 16.0, 8.0),
     ));
 
-    // Ground plane
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::default().mesh().size(50., 50.))),
         MeshMaterial3d(materials.add(Color::from(SILVER))),
@@ -101,11 +84,9 @@ fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
     }
 }
 
-/// Creates a colorful test pattern texture.
 fn uv_debug_texture() -> Image {
     const TEXTURE_SIZE: usize = 8;
 
-    // Eight RGBA colors cycling to form the UV debug pattern.
     let mut palette: [u8; 32] = [
         255, 102, 159, 255, 255, 159, 102, 255, 236, 255, 102, 255, 121, 255, 102, 255, 102, 255,
         198, 255, 102, 198, 255, 255, 121, 102, 255, 255, 236, 102, 255, 255,
