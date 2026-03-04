@@ -6,6 +6,7 @@ use bevy::prelude::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InputRole(pub &'static str);
 
+#[allow(dead_code)]
 pub mod role {
     use super::InputRole;
     pub const NAVIGATE: InputRole = InputRole("navigate");
