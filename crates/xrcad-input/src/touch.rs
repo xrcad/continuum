@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 
-use bevy::input::touch::{TouchInput, TouchPhase};
 use bevy::input::InputSystem;
+use bevy::input::touch::{TouchInput, TouchPhase};
 use bevy::prelude::*;
 
 /// Orbit (azimuth / elevation) delta emitted by a single-finger drag.

@@ -1,7 +1,7 @@
 //! Routes raw input events to role messages.
 
-use bevy::prelude::*;
 use super::roles::InputRole;
+use bevy::prelude::*;
 
 /// A routed input event tagged with its role.
 #[derive(Event, Debug, Clone)]
