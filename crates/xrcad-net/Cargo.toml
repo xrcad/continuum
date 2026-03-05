@@ -1,0 +1,53 @@
+[package]
+name        = "xrcad-net"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "xrcad transport layer: peer discovery, connections, raw message delivery"
+
+[features]
+default = ["native"]
+# Native: tokio sockets + mDNS discovery
+native  = ["dep:mdns-sd", "dep:tokio", "dep:socket2"]
+# WASM: WebRTC DataChannel
+wasm    = ["dep:web-sys", "dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:js-sys"]
+
+[dependencies]
+# ── workspace ────────────────────────────────────────────────────────────────
+bevy.workspace      = true
+serde.workspace     = true
+postcard.workspace  = true
+uuid.workspace      = true
+thiserror.workspace = true
+tracing.workspace   = true
+
+# ── native-only ──────────────────────────────────────────────────────────────
+mdns-sd  = { version = "0.18", optional = true }
+tokio    = { version = "1",    optional = true, features = ["net", "sync", "rt", "macros", "time"] }
+socket2  = { version = "0.6",  optional = true, features = ["all"] }
+
+# ── wasm-only ────────────────────────────────────────────────────────────────
+web-sys = { version = "0.3", optional = true, features = [
+    "RtcPeerConnection",
+    "RtcDataChannel",
+    "RtcDataChannelInit",
+    "RtcSessionDescription",
+    "RtcSessionDescriptionInit",
+    "RtcIceCandidate",
+    "RtcIceCandidateInit",
+    "RtcConfiguration",
+    "RtcIceServer",
+    "RtcDataChannelState",
+    "RtcPeerConnectionState",
+    "RtcSignalingState",
+    "MessageEvent",
+    "ErrorEvent",
+    "Event",
+    "EventTarget",
+] }
+wasm-bindgen         = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+js-sys               = { version = "0.3", optional = true }
+
+[dev-dependencies]
+bevy.workspace = true
