@@ -1,0 +1,30 @@
+[package]
+name        = "xrcad-collab"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "xrcad collaboration protocol: operation log, presence, vector clocks, git integration"
+
+[features]
+default = ["native"]
+native  = ["xrcad-net/native"]
+wasm    = ["xrcad-net/wasm"]
+
+[dependencies]
+# ── workspace ────────────────────────────────────────────────────────────────
+bevy.workspace      = true
+serde.workspace     = true
+postcard.workspace  = true
+uuid.workspace      = true
+thiserror.workspace = true
+tracing.workspace   = true
+
+# ── sibling crates ───────────────────────────────────────────────────────────
+xrcad-net.workspace = true
+
+# ── git integration (native only; excluded from WASM) ────────────────────────
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+git2 = { version = "0.20", default-features = false }
+
+[dev-dependencies]
+bevy.workspace = true

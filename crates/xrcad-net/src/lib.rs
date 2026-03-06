@@ -1,310 +1,244 @@
-//! Client-side networking plugin for xrcad.
+//! `xrcad-net` — transport layer for xrcad peer-to-peer collaboration.
 //!
-//! On startup the plugin derives the relay URL from the page origin (WASM) or
-//! falls back to `ws://localhost:8080/relay/room/default` (native), then
-//! attempts a non-blocking connection via `ewebsock`.
+//! Responsibilities:
+//! - mDNS autodiscovery on LAN and Tailscale networks (`native` feature)
+//! - Session code exchange for internet peers
+//! - Direct UDP + TCP connections (`native` feature)
+//! - WebRTC DataChannel connections (`wasm` feature)
+//! - Bevy plugin exposing typed events and a command channel
 //!
-//! The rest of the app only touches two resources:
-//! - [`NetClient`] — connection state; press `N` to toggle
-//! - [`PeerCameras`] — live map of every connected peer's camera state
-
-pub mod messages;
-
-use std::{collections::HashMap, sync::Mutex};
+//! This crate handles **transport only**. It does not interpret message payloads.
+//! `xrcad-collab` builds the collaboration protocol on top of the events this crate emits.
+//!
+//! # Feature flags
+//! - `native` (default): tokio sockets + mdns-sd
+//! - `wasm`: WebRTC DataChannel via web-sys
 
 use bevy::prelude::*;
-use ewebsock::{WsEvent, WsMessage, WsReceiver, WsSender};
-pub use messages::{ClientMsg, PeerCameraState, ServerMsg};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-const BROADCAST_INTERVAL_SECS: f32 = 0.1;
+pub mod error;
+pub mod session_code;
 
-// ── Resources ────────────────────────────────────────────────────────────────
+#[cfg(feature = "native")]
+pub mod native;
 
-/// WebSocket connection state held as a Bevy [`Resource`].
+#[cfg(feature = "wasm")]
+pub mod wasm;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Identity types
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Stable identity for a peer. Generated once at first launch; persisted locally.
 ///
-/// `WsReceiver` is `!Sync` (it wraps `mpsc::Receiver`) so we wrap it in a
-/// `Mutex` to satisfy Bevy's `Resource: Send + Sync` requirement. The Mutex is
-/// only locked from the single `receive_msgs` system so there is no contention.
-#[derive(Resource)]
-pub struct NetClient {
-    pub peer_id: Uuid,
-    pub relay_url: String,
-    state: NetState,
-    broadcast_timer: f32,
+/// Peers identify each other by this ID across sessions. It is not a cryptographic
+/// identifier — it is just a UUID used to correlate messages and presence entries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct PeerId(pub Uuid);
+
+impl PeerId {
+    pub fn generate() -> Self { Self(Uuid::new_v4()) }
 }
 
-enum NetState {
-    Disconnected,
-    Live {
-        tx: WsSender,
-        rx: Mutex<WsReceiver>,
-    },
-}
-
-// SAFETY: WsSender is Send+Sync; WsReceiver is Send+!Sync.
-// Wrapping rx in Mutex makes NetState Send+Sync.
-unsafe impl Sync for NetState {}
-
-impl NetClient {
-    fn new(relay_url: String) -> Self {
-        Self {
-            peer_id: Uuid::new_v4(),
-            relay_url,
-            state: NetState::Disconnected,
-            broadcast_timer: 0.0,
-        }
-    }
-
-    pub fn connect(&mut self) {
-        match ewebsock::connect(&self.relay_url, ewebsock::Options::default()) {
-            Ok((tx, rx)) => {
-                self.state = NetState::Live {
-                    tx,
-                    rx: Mutex::new(rx),
-                };
-            }
-            Err(e) => {
-                warn!("xrcad-net: could not connect to {}: {e}", self.relay_url);
-            }
-        }
-    }
-
-    pub fn disconnect(&mut self) {
-        self.state = NetState::Disconnected;
-    }
-
-    pub fn is_connected(&self) -> bool {
-        matches!(self.state, NetState::Live { .. })
-    }
-
-    fn send(&mut self, msg: &ClientMsg) {
-        let NetState::Live { tx, .. } = &mut self.state else {
-            return;
-        };
-        match serde_json::to_string(msg) {
-            Ok(text) => tx.send(WsMessage::Text(text)),
-            Err(e) => warn!("xrcad-net: serialisation error: {e}"),
-        }
-    }
-
-    /// Drain all pending inbound events. Returns `None` if disconnected.
-    fn drain(&mut self) -> Option<Vec<WsEvent>> {
-        let NetState::Live { rx, .. } = &mut self.state else {
-            return None;
-        };
-        let rx = rx.get_mut().unwrap();
-        let mut events = Vec::new();
-        loop {
-            match rx.try_recv() {
-                Some(ev) => events.push(ev),
-                None => return Some(events),
-            }
-        }
+impl std::fmt::Display for PeerId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &self.0.to_string()[..8])
     }
 }
 
-/// Live map of every peer currently in the room.
-#[derive(Resource, Default)]
-pub struct PeerCameras(pub HashMap<Uuid, PeerCameraState>);
+/// Unique identifier for a collaboration session.
+///
+/// A session ID is chosen by the peer that creates the session. All peers in the same
+/// session share the same session ID. It is embedded in mDNS TXT records and session codes
+/// so that joining peers can confirm they are connecting to the right session.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct SessionId(pub Uuid);
 
-// ── LocalCameraState resource ─────────────────────────────────────────────────
-
-/// Written by `xrcad`'s camera system each frame; read here for broadcasting.
-/// Avoids a circular crate dependency between xrcad and xrcad-net.
-#[derive(Resource, Default)]
-pub struct LocalCameraState {
-    pub target: Vec3,
-    pub azimuth: f32,
-    pub elevation: f32,
-    pub distance: f32,
+impl SessionId {
+    pub fn generate() -> Self { Self(Uuid::new_v4()) }
 }
 
-// ── Plugin ────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Raw message envelope
+// ─────────────────────────────────────────────────────────────────────────────
 
-pub struct NetPlugin;
+/// The logical channel on which a message was sent or received.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Channel {
+    /// Unreliable, unordered. For presence / cursor / viewport. May be lost.
+    Unreliable,
+    /// Reliable, ordered. For document operations. Guaranteed delivery and order.
+    Reliable,
+}
 
-impl Plugin for NetPlugin {
+/// A raw inbound message before deserialization by `xrcad-collab`.
+///
+/// The `payload` field is a `postcard`-encoded byte slice. `xrcad-collab` systems
+/// subscribe to `PeerMessageReceived` events and decode the payload into their own types.
+#[derive(Debug, Clone)]
+pub struct RawMessage {
+    pub from:    PeerId,
+    pub channel: Channel,
+    /// postcard-encoded payload; deserialized by xrcad-collab.
+    pub payload: Vec<u8>,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bevy events — outward signals from xrcad-net to the rest of the app
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A peer has connected and completed the session handshake.
+#[derive(Event, Debug, Clone)]
+pub struct PeerConnected {
+    pub peer_id:     PeerId,
+    /// Display name as declared in the peer's handshake packet. May be updated later
+    /// via `DocOp::SetPeerName` in xrcad-collab.
+    pub display_name: Option<String>,
+    pub session_id:  SessionId,
+}
+
+/// A peer has disconnected, either gracefully or by timeout.
+#[derive(Event, Debug, Clone)]
+pub struct PeerDisconnected {
+    pub peer_id: PeerId,
+    /// `true` if the peer sent an explicit close; `false` if the connection timed out.
+    pub graceful: bool,
+}
+
+/// A raw message has arrived from a peer. Consumed by `xrcad-collab`.
+#[derive(Event, Debug, Clone)]
+pub struct PeerMessageReceived(pub RawMessage);
+
+/// mDNS has found a new xrcad instance on the local network or tailnet.
+///
+/// The application should show this peer in the "available sessions" list.
+/// The user explicitly chooses whether to join.
+#[derive(Event, Debug, Clone)]
+pub struct PeerDiscovered {
+    pub peer_id:      PeerId,
+    pub display_name: Option<String>,
+    /// Whether this peer is currently hosting a joinable session.
+    pub has_session:  bool,
+    pub session_id:   Option<SessionId>,
+}
+
+/// A previously discovered peer has left the local network (mDNS goodbye packet or timeout).
+#[derive(Event, Debug, Clone)]
+pub struct PeerLost {
+    pub peer_id: PeerId,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Commands — inward signals to xrcad-net from the rest of the app
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Commands sent to the net layer. Fire these as Bevy events to control the session.
+///
+/// `xrcad-collab` and the UI send these; `xrcad-net` systems consume them.
+#[derive(Event, Debug)]
+pub enum NetCommand {
+    /// Start a new session. Begins mDNS advertisement.
+    StartSession { session_id: SessionId },
+
+    /// Join an existing session — either a discovered LAN peer or an internet session code.
+    JoinSession { target: JoinTarget },
+
+    /// Broadcast a payload to all connected peers on the given channel.
+    Broadcast { channel: Channel, payload: Vec<u8> },
+
+    /// Send a payload to a specific peer.
+    SendTo { peer_id: PeerId, channel: Channel, payload: Vec<u8> },
+
+    /// Leave the session and close all peer connections.
+    LeaveSession,
+}
+
+/// How the joining peer will reach the target.
+#[derive(Debug, Clone)]
+pub enum JoinTarget {
+    /// A peer discovered via mDNS — `xrcad-net` already knows the address.
+    DiscoveredPeer(PeerId),
+    /// A session code produced by `session_code::encode`.
+    SessionCode(String),
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Resources
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Current session state of the local peer. Readable by any system.
+#[derive(Resource, Debug, Default, Clone, PartialEq, Eq)]
+pub enum SessionState {
+    #[default]
+    /// Not in any session.
+    Idle,
+    /// Hosting a session; peers may join.
+    Hosting { session_id: SessionId },
+    /// Joined another peer's session.
+    Joined { session_id: SessionId },
+}
+
+/// This peer's identity and display name.
+#[derive(Resource, Debug, Clone)]
+pub struct LocalPeer {
+    pub peer_id:      PeerId,
+    pub display_name: String,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Plugin
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Add to your Bevy [`App`] to enable xrcad networking.
+///
+/// The local peer's identity should be generated once at first launch and persisted
+/// (e.g. in the app config directory). Generating a new UUID on every launch means
+/// other peers cannot recognise returning users across reconnects.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use bevy::prelude::*;
+/// use xrcad_net::{XrcadNetPlugin, PeerId};
+///
+/// fn main() {
+///     App::new()
+///         .add_plugins(DefaultPlugins)
+///         .add_plugins(XrcadNetPlugin {
+///             local_peer_id: PeerId::generate(), // persist this!
+///             display_name:  "Alice".to_string(),
+///         })
+///         .run();
+/// }
+/// ```
+pub struct XrcadNetPlugin {
+    /// This peer's stable identity. Generate once; persist across launches.
+    pub local_peer_id: PeerId,
+    /// Human-readable name shown to other peers in the session.
+    pub display_name: String,
+}
+
+impl Plugin for XrcadNetPlugin {
     fn build(&self, app: &mut App) {
-        let relay_url = derive_relay_url();
-        info!("xrcad-net: relay URL = {relay_url}");
+        app
+            .insert_resource(LocalPeer {
+                peer_id:      self.local_peer_id,
+                display_name: self.display_name.clone(),
+            })
+            .insert_resource(SessionState::default())
+            .add_event::<PeerConnected>()
+            .add_event::<PeerDisconnected>()
+            .add_event::<PeerMessageReceived>()
+            .add_event::<PeerDiscovered>()
+            .add_event::<PeerLost>()
+            .add_event::<NetCommand>();
 
-        let mut client = NetClient::new(relay_url);
-        client.connect(); // best-effort; failure is silently ignored
+        #[cfg(feature = "native")]
+        native::register(app);
 
-        app.insert_resource(client)
-            .insert_resource(PeerCameras::default())
-            .add_systems(Update, receive_msgs)
-            .add_systems(Update, broadcast_camera.after(receive_msgs))
-            .add_systems(Update, reconnect_key.after(broadcast_camera));
-    }
-}
-
-// ── Systems ────────────────────────────────────────────────────────────────────
-
-fn receive_msgs(mut client: ResMut<NetClient>, mut peers: ResMut<PeerCameras>) {
-    let Some(events) = client.drain() else { return };
-
-    let peer_id = client.peer_id;
-    let mut disconnected = false;
-
-    for event in events {
-        match event {
-            WsEvent::Opened => {
-                info!("xrcad-net: connected as {peer_id}");
-                client.send(&ClientMsg::Join { peer_id });
-            }
-            WsEvent::Message(WsMessage::Text(text)) => {
-                match serde_json::from_str::<ServerMsg>(&text) {
-                    Ok(ServerMsg::PeerJoined(id)) => {
-                        info!("xrcad-net: peer joined {id}");
-                    }
-                    Ok(ServerMsg::PeerLeft(id)) => {
-                        peers.0.remove(&id);
-                    }
-                    Ok(ServerMsg::Camera(state)) => {
-                        peers.0.insert(state.peer_id, state);
-                    }
-                    Err(e) => warn!("xrcad-net: bad message: {e}"),
-                }
-            }
-            WsEvent::Error(e) => {
-                warn!("xrcad-net: socket error: {e}");
-                disconnected = true;
-            }
-            WsEvent::Closed => {
-                info!("xrcad-net: disconnected");
-                disconnected = true;
-            }
-            _ => {}
-        }
-    }
-
-    if disconnected {
-        client.disconnect();
-        peers.0.clear();
-    }
-}
-
-fn broadcast_camera(
-    mut client: ResMut<NetClient>,
-    camera_state: Option<Res<LocalCameraState>>,
-    time: Res<Time>,
-) {
-    if !client.is_connected() {
-        return;
-    }
-    client.broadcast_timer += time.delta_secs();
-    if client.broadcast_timer < BROADCAST_INTERVAL_SECS {
-        return;
-    }
-    client.broadcast_timer = 0.0;
-
-    let Some(state) = camera_state else { return };
-    let peer_id = client.peer_id;
-    client.send(&ClientMsg::Camera(PeerCameraState {
-        peer_id,
-        target: state.target.into(),
-        azimuth: state.azimuth,
-        elevation: state.elevation,
-        distance: state.distance,
-    }));
-}
-
-fn reconnect_key(keys: Res<ButtonInput<KeyCode>>, mut client: ResMut<NetClient>) {
-    if keys.just_pressed(KeyCode::KeyN) {
-        if client.is_connected() {
-            client.disconnect();
-        } else {
-            client.connect();
-        }
-    }
-}
-
-// ── URL derivation ─────────────────────────────────────────────────────────────
-
-/// Derive the WebSocket relay URL.
-///
-/// **Priority order (WASM)**:
-/// 1. `?relay=wss://...` query parameter in the page URL — lets you point a
-///    GitHub Pages build at any separately-hosted relay server.
-/// 2. Same origin as the page (only works when you self-host with
-///    `xrcad-server`; GitHub Pages cannot serve WebSockets).
-///
-/// **Native**: `ws://localhost:8080/relay/room/default`.
-fn derive_relay_url() -> String {
-    #[cfg(target_arch = "wasm32")]
-    {
-        // Check for an explicit ?relay=<url> query parameter first.
-        if let Some(relay) = relay_from_query_param() {
-            return relay;
-        }
-
-        let origin = web_sys::window()
-            .and_then(|w| w.location().origin().ok())
-            .unwrap_or_else(|| "http://localhost:8080".to_string());
-        let ws_origin = origin
-            .replace("https://", "wss://")
-            .replace("http://", "ws://");
-        format!("{ws_origin}/relay/room/default")
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        "ws://localhost:8080/relay/room/default".to_string()
-    }
-}
-
-/// Parse the `relay` query parameter from the current page URL, e.g.:
-/// `https://user.github.io/xrcad/?relay=wss://myserver.example.com/relay/room/default`
-#[cfg(target_arch = "wasm32")]
-fn relay_from_query_param() -> Option<String> {
-    let search = web_sys::window()?.location().search().ok()?;
-    // `search` looks like "?relay=wss://..." or "?foo=bar&relay=wss://..."
-    let query = search.trim_start_matches('?');
-    for pair in query.split('&') {
-        if let Some(value) = pair.strip_prefix("relay=") {
-            if !value.is_empty() {
-                // URL-decode the value (handle %3A → ':', %2F → '/', etc.)
-                let decoded = url_decode(value);
-                info!("xrcad-net: relay URL overridden by query param: {decoded}");
-                return Some(decoded);
-            }
-        }
-    }
-    None
-}
-
-/// Minimal percent-decoder — handles the characters that typically appear in
-/// WebSocket URLs (`%3A` → `:`, `%2F` → `/`, `%40` → `@`, `%3F` → `?`).
-#[cfg(target_arch = "wasm32")]
-fn url_decode(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    let b = s.as_bytes();
-    let mut i = 0;
-    while i < b.len() {
-        if b[i] == b'%' && i + 2 < b.len() {
-            if let (Some(h), Some(l)) = (hex_val(b[i + 1]), hex_val(b[i + 2])) {
-                out.push((h << 4 | l) as char);
-                i += 3;
-                continue;
-            }
-        } else if b[i] == b'+' {
-            out.push(' ');
-            i += 1;
-            continue;
-        }
-        out.push(b[i] as char);
-        i += 1;
-    }
-    out
-}
-
-#[cfg(target_arch = "wasm32")]
-fn hex_val(b: u8) -> Option<u8> {
-    match b {
-        b'0'..=b'9' => Some(b - b'0'),
-        b'a'..=b'f' => Some(b - b'a' + 10),
-        b'A'..=b'F' => Some(b - b'A' + 10),
-        _ => None,
+        #[cfg(feature = "wasm")]
+        wasm::register(app);
     }
 }
