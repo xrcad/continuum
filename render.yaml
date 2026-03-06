@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: xrcad-relay
+    env: rust
+    plan: free
+    buildCommand: cargo build --release -p xrcad-server
+    startCommand: ./target/release/xrcad-server --port $PORT --dir ./wasm
+    healthCheckPath: /
+    envVars:
+      - key: RUST_LOG
+        value: info

@@ -10,9 +10,9 @@
 //! This crate handles **transport only**. It does not interpret message payloads.
 //! `xrcad-collab` builds the collaboration protocol on top of the events this crate emits.
 //!
-//! # Feature flags
-//! - `native` (default): tokio sockets + mdns-sd
-//! - `wasm`: WebRTC DataChannel via web-sys
+//! The transport is selected automatically by build target:
+//! - non-wasm32: tokio sockets + mDNS discovery
+//! - wasm32: WebSocket relay via web-sys
 
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -21,10 +21,10 @@ use uuid::Uuid;
 pub mod error;
 pub mod session_code;
 
-#[cfg(feature = "native")]
+#[cfg(not(target_arch = "wasm32"))]
 pub mod native;
 
-#[cfg(feature = "wasm")]
+#[cfg(target_arch = "wasm32")]
 pub mod wasm;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -242,10 +242,10 @@ impl Plugin for XrcadNetPlugin {
         .add_message::<PeerLost>()
         .add_message::<NetCommand>();
 
-        #[cfg(feature = "native")]
+        #[cfg(not(target_arch = "wasm32"))]
         native::register(app);
 
-        #[cfg(feature = "wasm")]
+        #[cfg(target_arch = "wasm32")]
         wasm::register(app);
     }
 }

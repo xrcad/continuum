@@ -5,18 +5,8 @@ edition.workspace = true
 license.workspace = true
 description = "xrcad transport layer: peer discovery, connections, raw message delivery"
 
-[lints]
-workspace = true
-
-[features]
-default = ["native"]
-# Native: tokio sockets + mDNS discovery
-native  = ["dep:mdns-sd", "dep:tokio", "dep:socket2"]
-# WASM: WebRTC DataChannel
-wasm    = ["dep:web-sys", "dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:js-sys"]
-
 [dependencies]
-# ── workspace ────────────────────────────────────────────────────────────────
+# ── workspace (all targets) ───────────────────────────────────────────────────
 bevy.workspace      = true
 serde.workspace     = true
 postcard.workspace  = true
@@ -24,33 +14,29 @@ uuid.workspace      = true
 thiserror.workspace = true
 tracing.workspace   = true
 
-# ── native-only ──────────────────────────────────────────────────────────────
-mdns-sd  = { version = "0.18", optional = true }
-tokio    = { version = "1",    optional = true, features = ["net", "sync", "rt", "rt-multi-thread", "macros", "time", "io-util"] }
-socket2  = { version = "0.6",  optional = true, features = ["all"] }
+# ── native (non-WASM) ─────────────────────────────────────────────────────────
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+mdns-sd = { version = "0.18" }
+tokio   = { version = "1", features = ["net", "sync", "rt", "rt-multi-thread", "macros", "time", "io-util"] }
+socket2 = { version = "0.6", features = ["all"] }
 
-# ── wasm-only ────────────────────────────────────────────────────────────────
-web-sys = { version = "0.3", optional = true, features = [
-    "RtcPeerConnection",
-    "RtcDataChannel",
-    "RtcDataChannelInit",
-    "RtcSessionDescription",
-    "RtcSessionDescriptionInit",
-    "RtcIceCandidate",
-    "RtcIceCandidateInit",
-    "RtcConfiguration",
-    "RtcIceServer",
-    "RtcDataChannelState",
-    "RtcPeerConnectionState",
-    "RtcSignalingState",
+# ── WASM ──────────────────────────────────────────────────────────────────────
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { version = "0.3", features = [
+    "WebSocket",
     "MessageEvent",
+    "CloseEvent",
     "ErrorEvent",
+    "BinaryType",
+    "Location",
+    "Window",
     "Event",
     "EventTarget",
 ] }
-wasm-bindgen         = { version = "0.2", optional = true }
-wasm-bindgen-futures = { version = "0.4", optional = true }
-js-sys               = { version = "0.3", optional = true }
+wasm-bindgen         = { version = "0.2" }
+wasm-bindgen-futures = { version = "0.4" }
+js-sys               = { version = "0.3" }
+serde_json.workspace = true
 
 [dev-dependencies]
 bevy.workspace = true
