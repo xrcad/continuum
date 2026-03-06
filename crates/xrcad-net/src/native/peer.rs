@@ -5,8 +5,8 @@ use tokio::io::{AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
-use crate::{Channel, PeerId, SessionId};
 use super::framing::{read_frame, write_frame};
+use crate::{Channel, PeerId, SessionId};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Wire types
@@ -99,9 +99,11 @@ pub(super) async fn run_peer(
     };
     let (remote_peer_id, remote_display_name, session_id) =
         match postcard::from_bytes::<WireMsg>(&frame) {
-            Ok(WireMsg::Handshake { peer_id, display_name, session_id }) => {
-                (peer_id, display_name, session_id)
-            }
+            Ok(WireMsg::Handshake {
+                peer_id,
+                display_name,
+                session_id,
+            }) => (peer_id, display_name, session_id),
             _ => return, // protocol error
         };
 

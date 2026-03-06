@@ -26,7 +26,11 @@ fn sync_peer_markers(
 ) {
     // Update transforms or despawn markers for peers that have left / lost viewport.
     for (entity, marker, mut transform) in &mut existing {
-        match presence.peers.get(&marker.0).and_then(|p| p.msg.viewport.as_ref()) {
+        match presence
+            .peers
+            .get(&marker.0)
+            .and_then(|p| p.msg.viewport.as_ref())
+        {
             Some(vp) => {
                 let eye = Vec3::from(vp.eye);
                 let target = Vec3::from(vp.target);
@@ -46,7 +50,9 @@ fn sync_peer_markers(
         if existing_ids.contains(peer_id) {
             continue;
         }
-        let Some(vp) = &peer.msg.viewport else { continue };
+        let Some(vp) = &peer.msg.viewport else {
+            continue;
+        };
 
         let eye = Vec3::from(vp.eye);
         let target = Vec3::from(vp.target);
@@ -58,7 +64,10 @@ fn sync_peer_markers(
 
         let [r, g, b] = peer.msg.peer_colour;
         commands.spawn((
-            Mesh3d(meshes.add(Cone { radius: 0.15, height: 0.4 })),
+            Mesh3d(meshes.add(Cone {
+                radius: 0.15,
+                height: 0.4,
+            })),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::srgb(r, g, b),
                 unlit: true,

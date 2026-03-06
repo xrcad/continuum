@@ -105,10 +105,7 @@ fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
 
 /// Mirror the local OrbitCamera state into [`LocalViewport`] each frame so
 /// `broadcast_presence` can include it in outgoing presence packets.
-fn write_local_viewport(
-    camera_q: Query<&OrbitCamera>,
-    mut local_vp: ResMut<LocalViewport>,
-) {
+fn write_local_viewport(camera_q: Query<&OrbitCamera>, mut local_vp: ResMut<LocalViewport>) {
     if let Ok(cam) = camera_q.single() {
         let transform = cam.compute_transform();
         local_vp.0 = Some(Viewport {
