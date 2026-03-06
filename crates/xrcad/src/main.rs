@@ -1,8 +1,26 @@
 mod camera;
+mod peer_markers;
 mod scene_plugin;
 
 use bevy::{asset::AssetMetaCheck, prelude::*};
 use scene_plugin::ScenePlugin;
+use xrcad_collab::XrcadCollabPlugin;
+use xrcad_data::XrcadDataPlugin;
+use xrcad_net::{PeerId, XrcadNetPlugin};
+
+/// Return a stable peer ID for this launch.
+///
+/// TODO: persist to disk so reconnecting peers are recognised across launches.
+fn load_or_generate_peer_id() -> PeerId {
+    PeerId::generate()
+}
+
+/// Return a human-readable display name for this peer.
+fn whoami_fallback() -> String {
+    std::env::var("USER")
+        .or_else(|_| std::env::var("USERNAME"))
+        .unwrap_or_else(|_| "Peer".to_string())
+}
 
 fn main() {
     App::new()
@@ -24,6 +42,12 @@ fn main() {
                     ..default()
                 }),
         )
+        .add_plugins(XrcadNetPlugin {
+            local_peer_id: load_or_generate_peer_id(),
+            display_name: whoami_fallback(),
+        })
+        .add_plugins(XrcadCollabPlugin::default())
+        .add_plugins(XrcadDataPlugin)
         .add_plugins(ScenePlugin)
         .run();
 }

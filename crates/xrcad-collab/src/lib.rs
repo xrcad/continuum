@@ -39,7 +39,7 @@ pub mod vector_clock;
 
 pub use doc_op::{ConflictOutcome, DocOp};
 pub use op_log::OpEnvelope;
-pub use presence::{PeerPresence, PresenceMsg};
+pub use presence::{LocalViewport, PeerPresence, PresenceMsg, PresenceState, Viewport};
 pub use session::SessionManager;
 pub use vector_clock::VectorClock;
 
@@ -63,6 +63,7 @@ impl Plugin for XrcadCollabPlugin {
             .insert_resource(SessionManager::default())
             .insert_resource(op_log::OpLog::default())
             .insert_resource(presence::PresenceState::default())
+            .insert_resource(presence::LocalViewport::default())
             .add_message::<OpApplied>()
             .add_message::<OpConflict>()
             .add_message::<SendDocOp>()

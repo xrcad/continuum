@@ -40,6 +40,21 @@ pub struct Viewport {
 // Resources
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// The local peer's current camera viewport.
+///
+/// Write this resource from the app's camera system each frame.
+/// `broadcast_presence` reads it and includes it in every outgoing
+/// presence packet so remote peers can render a marker at our camera position.
+///
+/// ```rust,no_run
+/// local_vp.0 = Some(xrcad_collab::presence::Viewport {
+///     eye:    camera_transform.translation.into(),
+///     target: orbit_target.into(),
+/// });
+/// ```
+#[derive(Resource, Default)]
+pub struct LocalViewport(pub Option<Viewport>);
+
 /// Last-seen presence entry for a remote peer.
 #[derive(Debug, Clone)]
 pub struct PeerPresence {
@@ -81,14 +96,14 @@ impl PresenceState {
 /// Run at ~10 Hz (configure via run conditions in the plugin).
 pub fn broadcast_presence(
     local: Res<LocalPeer>,
+    local_vp: Res<LocalViewport>,
     mut cmds: MessageWriter<NetCommand>,
-    // TODO: read cursor and viewport from ECS once those components exist
 ) {
     let msg = PresenceMsg {
         peer_id: local.peer_id,
         display_name: local.display_name.clone(),
         cursor_pos: None,
-        viewport: None,
+        viewport: local_vp.0.clone(),
         active_tool: None,
         peer_colour: [0.4, 0.7, 1.0], // placeholder; should be per-peer persistent colour
     };
