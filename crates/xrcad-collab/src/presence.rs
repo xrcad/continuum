@@ -46,7 +46,7 @@ pub struct Viewport {
 /// `broadcast_presence` reads it and includes it in every outgoing
 /// presence packet so remote peers can render a marker at our camera position.
 ///
-/// ```rust,no_run
+/// ```rust,ignore
 /// local_vp.0 = Some(xrcad_collab::presence::Viewport {
 ///     eye:    camera_transform.translation.into(),
 ///     target: orbit_target.into(),
