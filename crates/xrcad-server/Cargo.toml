@@ -1,0 +1,17 @@
+[package]
+name = "xrcad-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# Native only — never compiled to WASM
+[dependencies]
+axum          = { version = "0.8", features = ["ws"] }
+tokio         = { version = "1", features = ["full"] }
+tower-http    = { version = "0.6", features = ["fs"] }
+serde         = { workspace = true }
+serde_json    = { workspace = true }
+uuid          = { workspace = true }
+
+[lints]
+workspace = true

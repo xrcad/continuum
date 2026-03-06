@@ -39,7 +39,9 @@ pub mod wasm;
 pub struct PeerId(pub Uuid);
 
 impl PeerId {
-    pub fn generate() -> Self { Self(Uuid::new_v4()) }
+    pub fn generate() -> Self {
+        Self(Uuid::new_v4())
+    }
 }
 
 impl std::fmt::Display for PeerId {
@@ -57,7 +59,9 @@ impl std::fmt::Display for PeerId {
 pub struct SessionId(pub Uuid);
 
 impl SessionId {
-    pub fn generate() -> Self { Self(Uuid::new_v4()) }
+    pub fn generate() -> Self {
+        Self(Uuid::new_v4())
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,7 +83,7 @@ pub enum Channel {
 /// subscribe to `PeerMessageReceived` events and decode the payload into their own types.
 #[derive(Debug, Clone)]
 pub struct RawMessage {
-    pub from:    PeerId,
+    pub from: PeerId,
     pub channel: Channel,
     /// postcard-encoded payload; deserialized by xrcad-collab.
     pub payload: Vec<u8>,
@@ -90,17 +94,17 @@ pub struct RawMessage {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// A peer has connected and completed the session handshake.
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct PeerConnected {
-    pub peer_id:     PeerId,
+    pub peer_id: PeerId,
     /// Display name as declared in the peer's handshake packet. May be updated later
     /// via `DocOp::SetPeerName` in xrcad-collab.
     pub display_name: Option<String>,
-    pub session_id:  SessionId,
+    pub session_id: SessionId,
 }
 
 /// A peer has disconnected, either gracefully or by timeout.
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct PeerDisconnected {
     pub peer_id: PeerId,
     /// `true` if the peer sent an explicit close; `false` if the connection timed out.
@@ -108,24 +112,24 @@ pub struct PeerDisconnected {
 }
 
 /// A raw message has arrived from a peer. Consumed by `xrcad-collab`.
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct PeerMessageReceived(pub RawMessage);
 
 /// mDNS has found a new xrcad instance on the local network or tailnet.
 ///
 /// The application should show this peer in the "available sessions" list.
 /// The user explicitly chooses whether to join.
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct PeerDiscovered {
-    pub peer_id:      PeerId,
+    pub peer_id: PeerId,
     pub display_name: Option<String>,
     /// Whether this peer is currently hosting a joinable session.
-    pub has_session:  bool,
-    pub session_id:   Option<SessionId>,
+    pub has_session: bool,
+    pub session_id: Option<SessionId>,
 }
 
 /// A previously discovered peer has left the local network (mDNS goodbye packet or timeout).
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct PeerLost {
     pub peer_id: PeerId,
 }
@@ -137,7 +141,7 @@ pub struct PeerLost {
 /// Commands sent to the net layer. Fire these as Bevy events to control the session.
 ///
 /// `xrcad-collab` and the UI send these; `xrcad-net` systems consume them.
-#[derive(Event, Debug)]
+#[derive(Message, Debug)]
 pub enum NetCommand {
     /// Start a new session. Begins mDNS advertisement.
     StartSession { session_id: SessionId },
@@ -149,7 +153,11 @@ pub enum NetCommand {
     Broadcast { channel: Channel, payload: Vec<u8> },
 
     /// Send a payload to a specific peer.
-    SendTo { peer_id: PeerId, channel: Channel, payload: Vec<u8> },
+    SendTo {
+        peer_id: PeerId,
+        channel: Channel,
+        payload: Vec<u8>,
+    },
 
     /// Leave the session and close all peer connections.
     LeaveSession,
@@ -183,7 +191,7 @@ pub enum SessionState {
 /// This peer's identity and display name.
 #[derive(Resource, Debug, Clone)]
 pub struct LocalPeer {
-    pub peer_id:      PeerId,
+    pub peer_id: PeerId,
     pub display_name: String,
 }
 
@@ -222,18 +230,17 @@ pub struct XrcadNetPlugin {
 
 impl Plugin for XrcadNetPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(LocalPeer {
-                peer_id:      self.local_peer_id,
-                display_name: self.display_name.clone(),
-            })
-            .insert_resource(SessionState::default())
-            .add_event::<PeerConnected>()
-            .add_event::<PeerDisconnected>()
-            .add_event::<PeerMessageReceived>()
-            .add_event::<PeerDiscovered>()
-            .add_event::<PeerLost>()
-            .add_event::<NetCommand>();
+        app.insert_resource(LocalPeer {
+            peer_id: self.local_peer_id,
+            display_name: self.display_name.clone(),
+        })
+        .insert_resource(SessionState::default())
+        .add_message::<PeerConnected>()
+        .add_message::<PeerDisconnected>()
+        .add_message::<PeerMessageReceived>()
+        .add_message::<PeerDiscovered>()
+        .add_message::<PeerLost>()
+        .add_message::<NetCommand>();
 
         #[cfg(feature = "native")]
         native::register(app);

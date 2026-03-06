@@ -35,16 +35,24 @@ pub struct OrbitCamera {
 
 impl OrbitCamera {
     pub fn compute_transform(&self) -> Transform {
-        let (sin_az, cos_az) = self.azimuth.sin_cos();
-        let (sin_el, cos_el) = self.elevation.sin_cos();
-        let pos = self.target
-            + Vec3::new(
-                self.distance * cos_el * sin_az,
-                self.distance * sin_el,
-                self.distance * cos_el * cos_az,
-            );
-        Transform::from_translation(pos).looking_at(self.target, Vec3::Y)
+        orbit_transform(self.target, self.azimuth, self.elevation, self.distance)
     }
+}
+
+/// Compute a camera [`Transform`] from spherical orbit parameters.
+///
+/// The camera is placed at the spherical position and oriented to look at
+/// `target`. Shared between the live camera and the peer marker system.
+pub fn orbit_transform(target: Vec3, azimuth: f32, elevation: f32, distance: f32) -> Transform {
+    let (sin_az, cos_az) = azimuth.sin_cos();
+    let (sin_el, cos_el) = elevation.sin_cos();
+    let pos = target
+        + Vec3::new(
+            distance * cos_el * sin_az,
+            distance * sin_el,
+            distance * cos_el * cos_az,
+        );
+    Transform::from_translation(pos).looking_at(target, Vec3::Y)
 }
 
 pub struct OrbitCameraPlugin;

@@ -5,8 +5,8 @@
 //! the time the op was generated. Receivers buffer ops until all causally prior ops
 //! have been applied, then apply in causal order.
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use xrcad_net::PeerId;
 
 /// A snapshot of one peer's knowledge of all peers' sequence numbers.
@@ -53,7 +53,9 @@ impl VectorClock {
 mod tests {
     use super::*;
 
-    fn pid() -> PeerId { PeerId(uuid::Uuid::new_v4()) }
+    fn pid() -> PeerId {
+        PeerId(uuid::Uuid::new_v4())
+    }
 
     #[test]
     fn dominates_empty() {

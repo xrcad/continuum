@@ -21,6 +21,8 @@ pub struct InputCorePlugin;
 impl Plugin for InputCorePlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<RoleMessage>()
+            .add_message::<OrbitDelta>()
+            .add_message::<PanDelta>()
             .init_resource::<InputRoleConfig>()
             .add_systems(PreUpdate, router::route_input);
     }

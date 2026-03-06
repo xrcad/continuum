@@ -4,13 +4,9 @@ use std::collections::VecDeque;
 
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use xrcad_net::{Channel, NetCommand, PeerId, PeerMessageReceived};
+use xrcad_net::{PeerId, PeerMessageReceived};
 
-use crate::{
-    doc_op::DocOp,
-    vector_clock::VectorClock,
-    OpApplied,
-};
+use crate::{OpApplied, doc_op::DocOp, vector_clock::VectorClock};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OpEnvelope
@@ -114,10 +110,7 @@ impl OpLog {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Receive raw reliable-channel messages and enqueue any [`ColabMsg::Op`]s.
-pub fn receive_ops(
-    mut messages: EventReader<PeerMessageReceived>,
-    mut log:      ResMut<OpLog>,
-) {
+pub fn receive_ops(mut messages: MessageReader<PeerMessageReceived>, mut log: ResMut<OpLog>) {
     for PeerMessageReceived(raw) in messages.read() {
         if raw.channel != xrcad_net::Channel::Reliable {
             continue;
@@ -132,15 +125,14 @@ pub fn receive_ops(
 
 /// Apply any ops whose causal dependencies are now satisfied.
 /// Fires an [`OpApplied`] event for each one so other systems can react.
-pub fn apply_ready_ops(
-    mut log:     ResMut<OpLog>,
-    mut applied: EventWriter<OpApplied>,
-) {
+pub fn apply_ready_ops(mut log: ResMut<OpLog>, mut applied: MessageWriter<OpApplied>) {
     for env in log.drain_ready() {
         tracing::debug!("applying op: {}", env.summary());
         let event_env = env.clone();
         log.applied.push(env);
-        applied.send(OpApplied { envelope: event_env });
+        applied.write(OpApplied {
+            envelope: event_env,
+        });
     }
 }
 

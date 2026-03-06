@@ -7,7 +7,8 @@ license.workspace = true
 [dependencies]
 bevy = { workspace = true }
 xrcad-kernel = { workspace = true }
-xrcad-input = { workspace = true }
+xrcad-input  = { workspace = true }
+uuid         = { workspace = true }
 
 [lints]
 workspace = true
