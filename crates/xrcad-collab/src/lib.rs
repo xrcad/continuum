@@ -106,7 +106,7 @@ pub struct OpConflict {
 /// # use bevy::prelude::*;
 /// # use xrcad_collab::{SendDocOp, DocOp};
 /// fn send_chat(mut writer: MessageWriter<SendDocOp>) {
-///     writer.send(SendDocOp(DocOp::Chat { text: "hello!".into() }));
+///     writer.write(SendDocOp(DocOp::Chat { text: "hello!".into() }));
 /// }
 /// ```
 #[derive(Message, Debug, Clone)]

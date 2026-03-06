@@ -163,11 +163,11 @@ fn accumulate_and_commit(
 
 #[cfg(not(target_arch = "wasm32"))]
 async fn commit_with_init(backend: &ActiveBackend, message: &str, ops_content: &str) {
-    if !backend.is_initialised().await {
-        if let Err(e) = backend.init().await {
-            tracing::error!("xrcad-data: init failed: {e}");
-            return;
-        }
+    if !backend.is_initialised().await
+        && let Err(e) = backend.init().await
+    {
+        tracing::error!("xrcad-data: init failed: {e}");
+        return;
     }
     if let Err(e) = backend.commit(message, ops_content).await {
         tracing::error!("xrcad-data: commit failed: {e}");
