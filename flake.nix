@@ -129,29 +129,49 @@
             self.packages.${pkgs.system}.xrcad-fetch-wasm
           ];
 
+          # Auto-fetch WASM files on every `nix-on-droid switch` / `home-manager switch`
+          # if the directory doesn't exist yet.  Re-run xrcad-fetch-wasm manually to update.
+          home.activation.xrcad-fetch-wasm = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+            if [ ! -d "${cfg.wasmDir}" ]; then
+              $DRY_RUN_CMD ${self.packages.${pkgs.system}.xrcad-fetch-wasm}/bin/xrcad-fetch-wasm
+            fi
+          '';
+
           # systemd user service — for regular Linux / NixOS home-manager.
           systemd.user.services.xrcad-server = lib.mkIf cfg.useSystemd {
             Unit.Description = "xrcad relay server";
             Install.WantedBy = [ "default.target" ];
             Service = {
+              # Fetch WASM on first start if directory is missing, then start server.
+              ExecStartPre = pkgs.writeShellScript "xrcad-ensure-wasm" ''
+                [ -d "${cfg.wasmDir}" ] || ${self.packages.${pkgs.system}.xrcad-fetch-wasm}/bin/xrcad-fetch-wasm
+              '';
               ExecStart = "${self.packages.${pkgs.system}.xrcad-server}/bin/xrcad-server --port ${toString cfg.port} --dir ${cfg.wasmDir}";
-              Restart   = "on-failure";
+              Restart    = "on-failure";
             };
           };
 
           # Termux:Boot script — for nix-on-droid (Android, no systemd).
           # Install the "Termux:Boot" app from F-Droid, then enable this option.
-          # The script runs automatically on every device boot.
+          # Fetches WASM automatically if missing, then starts the server.
           home.file.".termux/boot/xrcad-server" = lib.mkIf cfg.useTermuxBoot {
             executable = true;
             text = ''
               #!/data/data/com.termux/files/usr/bin/sh
-              # xrcad relay server — started by Termux:Boot on device boot
               export HOME=/data/data/com.termux.nix/files/home
+              LOG="$HOME/.local/share/xrcad-server/server.log"
+              mkdir -p "$(dirname "$LOG")"
+
+              # Fetch WASM app on first boot (or if directory was lost).
+              if [ ! -d "${cfg.wasmDir}" ]; then
+                ${self.packages.${pkgs.system}.xrcad-fetch-wasm}/bin/xrcad-fetch-wasm \
+                  >> "$LOG" 2>&1
+              fi
+
               ${self.packages.${pkgs.system}.xrcad-server}/bin/xrcad-server \
                 --port ${toString cfg.port} \
                 --dir ${cfg.wasmDir} \
-                >> "$HOME/.local/share/xrcad-server/server.log" 2>&1 &
+                >> "$LOG" 2>&1 &
             '';
           };
         };
