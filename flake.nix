@@ -100,9 +100,26 @@
             description = "TCP port to listen on.";
           };
           wasmDir = lib.mkOption {
-            type        = lib.types.str;
-            default     = "\${XDG_DATA_HOME:-\${HOME}/.local/share}/xrcad-server/www";
+            type    = lib.types.str;
+            default = "$HOME/.local/share/xrcad-server/www";
             description = "Directory containing the pre-built WASM app files.";
+          };
+          useTermuxBoot = lib.mkOption {
+            type    = lib.types.bool;
+            default = false;
+            description = ''
+              Install a Termux:Boot script so xrcad-server starts automatically
+              when the Android device boots.  Requires the Termux:Boot app.
+              Enable this on nix-on-droid instead of the systemd user service.
+            '';
+          };
+          useSystemd = lib.mkOption {
+            type    = lib.types.bool;
+            default = true;
+            description = ''
+              Register a systemd user service.  Disable on nix-on-droid
+              (which has no systemd) and enable useTermuxBoot instead.
+            '';
           };
         };
 
@@ -112,16 +129,30 @@
             self.packages.${pkgs.system}.xrcad-fetch-wasm
           ];
 
-          # systemd user service — works on Linux with systemd-user (NixOS HM).
-          # On nix-on-droid (no systemd) the packages are still installed;
-          # start manually with:  xrcad-server --port 8080 --dir <wasmDir>
-          systemd.user.services.xrcad-server = lib.mkIf (builtins.currentSystem != "aarch64-linux") {
+          # systemd user service — for regular Linux / NixOS home-manager.
+          systemd.user.services.xrcad-server = lib.mkIf cfg.useSystemd {
             Unit.Description = "xrcad relay server";
             Install.WantedBy = [ "default.target" ];
             Service = {
               ExecStart = "${self.packages.${pkgs.system}.xrcad-server}/bin/xrcad-server --port ${toString cfg.port} --dir ${cfg.wasmDir}";
               Restart   = "on-failure";
             };
+          };
+
+          # Termux:Boot script — for nix-on-droid (Android, no systemd).
+          # Install the "Termux:Boot" app from F-Droid, then enable this option.
+          # The script runs automatically on every device boot.
+          home.file.".termux/boot/xrcad-server" = lib.mkIf cfg.useTermuxBoot {
+            executable = true;
+            text = ''
+              #!/data/data/com.termux/files/usr/bin/sh
+              # xrcad relay server — started by Termux:Boot on device boot
+              export HOME=/data/data/com.termux.nix/files/home
+              ${self.packages.${pkgs.system}.xrcad-server}/bin/xrcad-server \
+                --port ${toString cfg.port} \
+                --dir ${cfg.wasmDir} \
+                >> "$HOME/.local/share/xrcad-server/server.log" 2>&1 &
+            '';
           };
         };
       };
