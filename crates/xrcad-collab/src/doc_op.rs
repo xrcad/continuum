@@ -29,7 +29,6 @@ use serde::{Deserialize, Serialize};
 #[non_exhaustive]
 pub enum DocOp {
     // ── Phase 1 — bootstrapping ─────────────────────────────────────────────
-
     /// Text chat message. Carried on the reliable channel so it appears in git history.
     Chat { text: String },
 
@@ -74,7 +73,6 @@ pub enum DocOp {
     // RemoveConstraint { id: ConstraintId },
 
     // ── Conflict bookkeeping ────────────────────────────────────────────────
-
     /// Records a user's resolution of a topology conflict.
     ///
     /// Both conflicting operations are embedded so the history is auditable in git.
@@ -82,11 +80,11 @@ pub enum DocOp {
         /// The peer who made the resolution decision.
         resolved_by: xrcad_net::PeerId,
         /// The local operation involved in the conflict.
-        local_op:    Box<DocOp>,
+        local_op: Box<DocOp>,
         /// The remote operation involved in the conflict.
-        remote_op:   Box<DocOp>,
+        remote_op: Box<DocOp>,
         /// What the user chose.
-        resolution:  ConflictOutcome,
+        resolution: ConflictOutcome,
     },
 }
 
@@ -109,7 +107,7 @@ impl DocOp {
     /// Returns a human-readable summary of this operation for commit messages and logging.
     pub fn summary(&self) -> String {
         match self {
-            DocOp::Chat { text }        => format!("Chat({:?})", &text[..text.len().min(40)]),
+            DocOp::Chat { text } => format!("Chat({:?})", &text[..text.len().min(40)]),
             DocOp::SetPeerName { name } => format!("SetPeerName({name:?})"),
             DocOp::ConflictResolution { resolution, .. } => {
                 format!("ConflictResolution({resolution:?})")

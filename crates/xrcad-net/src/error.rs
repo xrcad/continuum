@@ -14,10 +14,7 @@ pub enum NetError {
     Handshake(String),
 
     #[error("session ID mismatch (expected {expected}, got {got})")]
-    SessionMismatch {
-        expected: String,
-        got:      String,
-    },
+    SessionMismatch { expected: String, got: String },
 
     #[error("protocol version mismatch (local {local}, remote {remote})")]
     VersionMismatch { local: u8, remote: u8 },
