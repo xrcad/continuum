@@ -18,8 +18,8 @@ use bevy::prelude::*;
 use js_sys::{ArrayBuffer, Uint8Array};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
 use web_sys::{BinaryType, CloseEvent, MessageEvent, WebSocket};
 
 use crate::{
@@ -50,7 +50,10 @@ enum WsInbound {
     PeerJoined(crate::PeerId),
     PeerLeft(crate::PeerId),
     /// Binary relay frame decoded into from-peer + postcard payload.
-    Message { from: crate::PeerId, payload: Vec<u8> },
+    Message {
+        from: crate::PeerId,
+        payload: Vec<u8>,
+    },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -58,11 +61,11 @@ enum WsInbound {
 // ─────────────────────────────────────────────────────────────────────────────
 
 struct WasmWs {
-    ws:         WebSocket,
-    events:     Rc<RefCell<VecDeque<WsInbound>>>,
+    ws: WebSocket,
+    events: Rc<RefCell<VecDeque<WsInbound>>>,
     session_id: SessionId,
     /// Set to true once onopen fires and we've sent the Join message.
-    joined:     Rc<RefCell<bool>>,
+    joined: Rc<RefCell<bool>>,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,7 +166,12 @@ fn startup_wasm(world: &mut World) {
         cb.forget();
     }
 
-    world.insert_non_send_resource(WasmWs { ws, events, session_id, joined });
+    world.insert_non_send_resource(WasmWs {
+        ws,
+        events,
+        session_id,
+        joined,
+    });
 }
 
 fn flush_inbound(
@@ -194,7 +202,10 @@ fn flush_inbound(
                 });
             }
             WsInbound::PeerLeft(peer_id) => {
-                peer_disconnected.write(PeerDisconnected { peer_id, graceful: true });
+                peer_disconnected.write(PeerDisconnected {
+                    peer_id,
+                    graceful: true,
+                });
                 peer_lost.write(PeerLost { peer_id });
             }
             WsInbound::Message { from, payload } => {
