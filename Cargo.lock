@@ -6481,8 +6481,11 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "uuid",
+ "xrcad-collab",
+ "xrcad-data",
  "xrcad-input",
  "xrcad-kernel",
+ "xrcad-net",
 ]
 
 [[package]]

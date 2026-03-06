@@ -6,9 +6,11 @@ use bevy::{
     prelude::*,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
+use xrcad_collab::presence::{LocalViewport, Viewport};
 use xrcad_input::InputPlugins;
 
 use crate::camera::{OrbitCamera, OrbitCameraPlugin};
+use crate::peer_markers::PeerMarkerPlugin;
 
 pub struct ScenePlugin;
 
@@ -17,9 +19,10 @@ impl Plugin for ScenePlugin {
         app.add_plugins((
             InputPlugins::new().with_touch().with_mouse(),
             OrbitCameraPlugin,
+            PeerMarkerPlugin,
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, rotate);
+        .add_systems(Update, (rotate, write_local_viewport));
     }
 }
 
@@ -97,6 +100,21 @@ fn setup(
 fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
     for mut transform in &mut query {
         transform.rotate_y(time.delta_secs() / 2.);
+    }
+}
+
+/// Mirror the local OrbitCamera state into [`LocalViewport`] each frame so
+/// `broadcast_presence` can include it in outgoing presence packets.
+fn write_local_viewport(
+    camera_q: Query<&OrbitCamera>,
+    mut local_vp: ResMut<LocalViewport>,
+) {
+    if let Ok(cam) = camera_q.single() {
+        let transform = cam.compute_transform();
+        local_vp.0 = Some(Viewport {
+            eye: transform.translation.into(),
+            target: cam.target.into(),
+        });
     }
 }
 
