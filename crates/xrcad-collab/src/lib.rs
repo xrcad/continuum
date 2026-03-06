@@ -39,7 +39,7 @@ pub mod vector_clock;
 
 pub use doc_op::{ConflictOutcome, DocOp};
 pub use op_log::OpEnvelope;
-pub use presence::{PresenceMsg, PeerPresence};
+pub use presence::{PeerPresence, PresenceMsg};
 pub use session::SessionManager;
 pub use vector_clock::VectorClock;
 
@@ -52,34 +52,31 @@ pub use vector_clock::VectorClock;
 pub struct CollabConfig {}
 
 /// Add to your Bevy [`App`] alongside [`xrcad_net::XrcadNetPlugin`].
+#[derive(Default)]
 pub struct XrcadCollabPlugin {
     pub config: CollabConfig,
 }
 
-impl Default for XrcadCollabPlugin {
-    fn default() -> Self {
-        Self { config: CollabConfig::default() }
-    }
-}
-
 impl Plugin for XrcadCollabPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(self.config.clone())
+        app.insert_resource(self.config.clone())
             .insert_resource(SessionManager::default())
             .insert_resource(op_log::OpLog::default())
             .insert_resource(presence::PresenceState::default())
             .add_message::<OpApplied>()
             .add_message::<OpConflict>()
             .add_message::<SendDocOp>()
-            .add_systems(Update, (
-                presence::broadcast_presence,
-                presence::receive_presence,
-                op_log::receive_ops,
-                op_log::apply_ready_ops,
-                session::handle_peer_connected,
-                session::handle_peer_disconnected,
-            ));
+            .add_systems(
+                Update,
+                (
+                    presence::broadcast_presence,
+                    presence::receive_presence,
+                    op_log::receive_ops,
+                    op_log::apply_ready_ops,
+                    session::handle_peer_connected,
+                    session::handle_peer_disconnected,
+                ),
+            );
     }
 }
 
@@ -98,7 +95,7 @@ pub struct OpApplied {
 /// not applied. The UI should surface this to the user.
 #[derive(Message, Debug, Clone)]
 pub struct OpConflict {
-    pub local_op:  DocOp,
+    pub local_op: DocOp,
     pub remote_op: DocOp,
 }
 

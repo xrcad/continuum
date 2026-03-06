@@ -59,8 +59,12 @@ impl StorageBackend for IsomorphicGitBackend {
     }
 
     async fn is_initialised(&self) -> bool {
-        let Ok(xrcad_git) = get_xrcad_git() else { return false };
-        let Ok(f) = get_fn(&xrcad_git, "isInitialised") else { return false };
+        let Ok(xrcad_git) = get_xrcad_git() else {
+            return false;
+        };
+        let Ok(f) = get_fn(&xrcad_git, "isInitialised") else {
+            return false;
+        };
         let Ok(val) = f.call1(&JsValue::NULL, &JsValue::from_str(&self.dir)) else {
             return false;
         };
@@ -77,8 +81,7 @@ impl StorageBackend for IsomorphicGitBackend {
 // ─────────────────────────────────────────────────────────────────────────────
 
 fn get_xrcad_git() -> Result<Object, StorageError> {
-    let window = web_sys::window()
-        .ok_or_else(|| StorageError::Git("no window object".into()))?;
+    let window = web_sys::window().ok_or_else(|| StorageError::Git("no window object".into()))?;
     js_sys::Reflect::get(&window, &JsValue::from_str("xrcadGit"))
         .map_err(|_| StorageError::Git("window.xrcadGit not found".into()))?
         .dyn_into::<Object>()

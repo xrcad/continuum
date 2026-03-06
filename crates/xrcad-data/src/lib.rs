@@ -53,7 +53,7 @@ pub struct CommitPolicy {
 impl Default for CommitPolicy {
     fn default() -> Self {
         Self {
-            op_threshold:   50,
+            op_threshold: 50,
             time_threshold: Duration::from_secs(60),
         }
     }
@@ -94,10 +94,10 @@ impl Plugin for XrcadDataPlugin {
 // ─────────────────────────────────────────────────────────────────────────────
 
 fn accumulate_and_commit(
-    backend:  Res<ActiveBackend>,
-    policy:   Res<CommitPolicy>,
+    backend: Res<ActiveBackend>,
+    policy: Res<CommitPolicy>,
     mut batch: ResMut<PendingBatch>,
-    mut ops:   MessageReader<OpApplied>,
+    mut ops: MessageReader<OpApplied>,
 ) {
     // Drain incoming ops into the pending batch.
     for event in ops.read() {
@@ -146,8 +146,8 @@ fn accumulate_and_commit(
     #[cfg(target_arch = "wasm32")]
     {
         if let ActiveBackend::IsomorphicGit(b) = &*backend {
-            let dir     = b.dir.clone();
-            let msg     = message.clone();
+            let dir = b.dir.clone();
+            let msg = message.clone();
             let content = ops_content.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 let b = backend::IsomorphicGitBackend { dir };

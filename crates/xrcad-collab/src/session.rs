@@ -8,16 +8,16 @@ use xrcad_net::{PeerConnected, PeerDisconnected, PeerId, SessionId};
 /// Information about a connected remote peer.
 #[derive(Debug, Clone)]
 pub struct RemotePeer {
-    pub peer_id:      PeerId,
+    pub peer_id: PeerId,
     pub display_name: Option<String>,
     /// Monotonically increasing sequence number last seen from this peer.
-    pub last_seq:     u64,
+    pub last_seq: u64,
 }
 
 /// Registry of all peers currently in the session.
 #[derive(Resource, Default)]
 pub struct SessionManager {
-    pub peers:      HashMap<PeerId, RemotePeer>,
+    pub peers: HashMap<PeerId, RemotePeer>,
     pub session_id: Option<SessionId>,
 }
 
@@ -27,7 +27,14 @@ impl SessionManager {
     }
 
     pub fn add_peer(&mut self, peer_id: PeerId, display_name: Option<String>) {
-        self.peers.insert(peer_id, RemotePeer { peer_id, display_name, last_seq: 0 });
+        self.peers.insert(
+            peer_id,
+            RemotePeer {
+                peer_id,
+                display_name,
+                last_seq: 0,
+            },
+        );
         tracing::info!("peer joined: {peer_id}");
     }
 
@@ -42,7 +49,7 @@ impl SessionManager {
 // ─────────────────────────────────────────────────────────────────────────────
 
 pub fn handle_peer_connected(
-    mut events:  MessageReader<PeerConnected>,
+    mut events: MessageReader<PeerConnected>,
     mut manager: ResMut<SessionManager>,
 ) {
     for ev in events.read() {
@@ -52,7 +59,7 @@ pub fn handle_peer_connected(
 }
 
 pub fn handle_peer_disconnected(
-    mut events:  MessageReader<PeerDisconnected>,
+    mut events: MessageReader<PeerDisconnected>,
     mut manager: ResMut<SessionManager>,
 ) {
     for ev in events.read() {

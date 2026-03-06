@@ -15,11 +15,11 @@ pub struct ScenePlugin;
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-                InputPlugins::new().with_touch().with_mouse(),
-                OrbitCameraPlugin,
-            ))
-            .add_systems(Startup, setup)
-            .add_systems(Update, rotate);
+            InputPlugins::new().with_touch().with_mouse(),
+            OrbitCameraPlugin,
+        ))
+        .add_systems(Startup, setup)
+        .add_systems(Update, rotate);
     }
 }
 
