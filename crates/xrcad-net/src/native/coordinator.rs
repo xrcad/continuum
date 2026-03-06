@@ -146,17 +146,23 @@ pub(super) async fn run_coordinator(
                 match event {
                     PeerEvent::Connected { peer_id, display_name, session_id: peer_sess, writer } => {
                         connecting.remove(&peer_id);
-                        if active_peers.contains_key(&peer_id) {
-                            tracing::debug!("xrcad-net: duplicate connection from {peer_id}, dropping");
-                            drop(writer); // writer task exits when its rx is dropped
-                        } else {
+                        if let std::collections::hash_map::Entry::Vacant(e) =
+                            active_peers.entry(peer_id)
+                        {
                             tracing::info!("xrcad-net: peer connected: {peer_id}");
-                            active_peers.insert(peer_id, writer);
-                            inbound_tx.send(NetInbound::PeerConnected {
-                                peer_id,
-                                display_name: Some(display_name),
-                                session_id: peer_sess,
-                            }).ok();
+                            e.insert(writer);
+                            inbound_tx
+                                .send(NetInbound::PeerConnected {
+                                    peer_id,
+                                    display_name: Some(display_name),
+                                    session_id: peer_sess,
+                                })
+                                .ok();
+                        } else {
+                            tracing::debug!(
+                                "xrcad-net: duplicate connection from {peer_id}, dropping"
+                            );
+                            drop(writer); // writer task exits when its rx is dropped
                         }
                     }
                     PeerEvent::Disconnected { peer_id, graceful } => {
