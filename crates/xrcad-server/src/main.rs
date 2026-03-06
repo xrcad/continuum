@@ -31,11 +31,11 @@ use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PeerCameraState {
-    pub peer_id:   Uuid,
-    pub target:    [f32; 3],
-    pub azimuth:   f32,
+    pub peer_id: Uuid,
+    pub target: [f32; 3],
+    pub azimuth: f32,
     pub elevation: f32,
-    pub distance:  f32,
+    pub distance: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -64,7 +64,7 @@ type Rooms = Arc<Mutex<HashMap<String, Vec<(Uuid, PeerTx)>>>>;
 async fn main() {
     let args: Vec<String> = std::env::args().collect();
     let port = arg_value(&args, "--port").unwrap_or("8080");
-    let dir  = arg_value(&args, "--dir").unwrap_or("./wasm");
+    let dir = arg_value(&args, "--dir").unwrap_or("./wasm");
 
     let rooms: Rooms = Arc::new(Mutex::new(HashMap::new()));
 
@@ -147,7 +147,9 @@ async fn handle_socket(mut socket: WebSocket, room_id: String, rooms: Rooms) {
 
 /// Send `msg` to every peer in `room` except `except_id`.
 fn broadcast(room: &[(Uuid, PeerTx)], except_id: Uuid, msg: &ServerMsg) {
-    let Ok(text) = serde_json::to_string(msg) else { return };
+    let Ok(text) = serde_json::to_string(msg) else {
+        return;
+    };
     for (id, tx) in room {
         if *id != except_id {
             let _ = tx.send(text.clone());

@@ -35,7 +35,9 @@ fn process_mouse(
     }
 
     if buttons.pressed(MouseButton::Left) {
-        role_writer.write(RoleMessage { role: role::NAVIGATE });
+        role_writer.write(RoleMessage {
+            role: role::NAVIGATE,
+        });
         orbit_writer.write(OrbitDelta {
             azimuth: -delta.x * ORBIT_SENSITIVITY,
             elevation: delta.y * ORBIT_SENSITIVITY,

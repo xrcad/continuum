@@ -42,8 +42,7 @@ impl StorageBackend for GixBackend {
     async fn commit(&self, message: &str, ops_content: &str) -> Result<(), StorageError> {
         // 1. Write ops.log
         let ops_path = self.repo_path.join("ops.log");
-        std::fs::write(&ops_path, ops_content)
-            .map_err(|e| StorageError::Fs(e.to_string()))?;
+        std::fs::write(&ops_path, ops_content).map_err(|e| StorageError::Fs(e.to_string()))?;
 
         // 2. Stage ops.log
         let status = Command::new("git")
