@@ -5,6 +5,9 @@ edition.workspace = true
 license.workspace = true
 description = "xrcad transport layer: peer discovery, connections, raw message delivery"
 
+[lints]
+workspace = true
+
 [features]
 default = ["native"]
 # Native: tokio sockets + mDNS discovery

@@ -11,10 +11,10 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
-use crate::{Channel, PeerId, SessionId};
-use super::{NetInbound, NetOutbound};
 use super::framing::make_frame;
-use super::peer::{run_peer, PeerCmd, PeerEvent, WireMsg};
+use super::peer::{PeerCmd, PeerEvent, WireMsg, run_peer};
+use super::{NetInbound, NetOutbound};
+use crate::{Channel, PeerId, SessionId};
 
 const SERVICE_TYPE: &str = "_xrcad._tcp.local.";
 
@@ -146,17 +146,23 @@ pub(super) async fn run_coordinator(
                 match event {
                     PeerEvent::Connected { peer_id, display_name, session_id: peer_sess, writer } => {
                         connecting.remove(&peer_id);
-                        if active_peers.contains_key(&peer_id) {
-                            tracing::debug!("xrcad-net: duplicate connection from {peer_id}, dropping");
-                            drop(writer); // writer task exits when its rx is dropped
-                        } else {
+                        if let std::collections::hash_map::Entry::Vacant(e) =
+                            active_peers.entry(peer_id)
+                        {
                             tracing::info!("xrcad-net: peer connected: {peer_id}");
-                            active_peers.insert(peer_id, writer);
-                            inbound_tx.send(NetInbound::PeerConnected {
-                                peer_id,
-                                display_name: Some(display_name),
-                                session_id: peer_sess,
-                            }).ok();
+                            e.insert(writer);
+                            inbound_tx
+                                .send(NetInbound::PeerConnected {
+                                    peer_id,
+                                    display_name: Some(display_name),
+                                    session_id: peer_sess,
+                                })
+                                .ok();
+                        } else {
+                            tracing::debug!(
+                                "xrcad-net: duplicate connection from {peer_id}, dropping"
+                            );
+                            drop(writer); // writer task exits when its rx is dropped
                         }
                     }
                     PeerEvent::Disconnected { peer_id, graceful } => {
@@ -218,7 +224,10 @@ pub(super) async fn run_coordinator(
 
 /// Encode a `WireMsg::Payload` into a pre-assembled length-prefixed frame.
 fn encode_payload(channel: Channel, payload: &[u8]) -> Vec<u8> {
-    let msg = WireMsg::Payload { channel, payload: payload.to_vec() };
+    let msg = WireMsg::Payload {
+        channel,
+        payload: payload.to_vec(),
+    };
     let bytes = postcard::to_allocvec(&msg).unwrap_or_default();
     make_frame(&bytes)
 }
@@ -237,8 +246,12 @@ fn handle_resolved(
     peer_event_tx: &mpsc::UnboundedSender<PeerEvent>,
 ) {
     // Parse peer_id from TXT record.
-    let Some(pid_str) = info.get_property_val_str("peer_id") else { return };
-    let Ok(uuid) = Uuid::parse_str(pid_str) else { return };
+    let Some(pid_str) = info.get_property_val_str("peer_id") else {
+        return;
+    };
+    let Ok(uuid) = Uuid::parse_str(pid_str) else {
+        return;
+    };
     let peer_id = PeerId(uuid);
 
     // Skip our own advertisement.
@@ -258,7 +271,9 @@ fn handle_resolved(
     fullname_map.insert(info.get_fullname().to_string(), peer_id);
 
     // Pick the first IPv4 address resolved by mDNS.
-    let Some(addr_v4) = info.get_addresses_v4().into_iter().next() else { return };
+    let Some(addr_v4) = info.get_addresses_v4().into_iter().next() else {
+        return;
+    };
     let sock_addr = SocketAddr::new(IpAddr::V4(addr_v4), info.get_port());
 
     tracing::info!("xrcad-net: discovered {peer_id} at {sock_addr}");
@@ -289,7 +304,10 @@ fn handle_resolved(
                 tracing::warn!("xrcad-net: connect to {peer_id} at {sock_addr}: {e}");
                 // Remove from `connecting` so a future mDNS re-resolve can retry.
                 evt_tx
-                    .send(PeerEvent::Disconnected { peer_id, graceful: false })
+                    .send(PeerEvent::Disconnected {
+                        peer_id,
+                        graceful: false,
+                    })
                     .ok();
             }
         }

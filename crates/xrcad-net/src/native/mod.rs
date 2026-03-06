@@ -129,16 +129,36 @@ fn flush_inbound(
     };
     while let Ok(event) = rx.try_recv() {
         match event {
-            NetInbound::PeerConnected { peer_id, display_name, session_id } => {
-                peer_connected.write(PeerConnected { peer_id, display_name, session_id });
+            NetInbound::PeerConnected {
+                peer_id,
+                display_name,
+                session_id,
+            } => {
+                peer_connected.write(PeerConnected {
+                    peer_id,
+                    display_name,
+                    session_id,
+                });
             }
             NetInbound::PeerDisconnected { peer_id, graceful } => {
                 peer_disconnected.write(PeerDisconnected { peer_id, graceful });
             }
-            NetInbound::Message { from, channel, payload } => {
-                peer_msg.write(PeerMessageReceived(RawMessage { from, channel, payload }));
+            NetInbound::Message {
+                from,
+                channel,
+                payload,
+            } => {
+                peer_msg.write(PeerMessageReceived(RawMessage {
+                    from,
+                    channel,
+                    payload,
+                }));
             }
-            NetInbound::PeerDiscovered { peer_id, display_name, session_id } => {
+            NetInbound::PeerDiscovered {
+                peer_id,
+                display_name,
+                session_id,
+            } => {
                 peer_discovered.write(PeerDiscovered {
                     peer_id,
                     display_name,
@@ -160,7 +180,11 @@ fn flush_outbound(bridge: Res<NetBridge>, mut commands: MessageReader<NetCommand
                 channel: *channel,
                 payload: payload.clone(),
             },
-            NetCommand::SendTo { peer_id, channel, payload } => NetOutbound::SendTo {
+            NetCommand::SendTo {
+                peer_id,
+                channel,
+                payload,
+            } => NetOutbound::SendTo {
                 peer_id: *peer_id,
                 channel: *channel,
                 payload: payload.clone(),

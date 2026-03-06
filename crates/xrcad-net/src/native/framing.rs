@@ -7,10 +7,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 const MAX_FRAME: usize = 4 * 1024 * 1024; // 4 MiB
 
 /// Write a single frame: 4-byte LE length prefix followed by `data`.
-pub async fn write_frame<W: AsyncWriteExt + Unpin>(
-    w: &mut W,
-    data: &[u8],
-) -> std::io::Result<()> {
+pub async fn write_frame<W: AsyncWriteExt + Unpin>(w: &mut W, data: &[u8]) -> std::io::Result<()> {
     w.write_all(&(data.len() as u32).to_le_bytes()).await?;
     w.write_all(data).await
 }
