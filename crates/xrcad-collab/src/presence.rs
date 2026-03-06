@@ -78,7 +78,7 @@ impl PresenceState {
 /// Run at ~10 Hz (configure via run conditions in the plugin).
 pub fn broadcast_presence(
     local:     Res<LocalPeer>,
-    mut cmds:  EventWriter<NetCommand>,
+    mut cmds:  MessageWriter<NetCommand>,
     // TODO: read cursor and viewport from ECS once those components exist
 ) {
     let msg = PresenceMsg {
@@ -95,7 +95,7 @@ pub fn broadcast_presence(
         return;
     };
 
-    cmds.send(NetCommand::Broadcast {
+    cmds.write(NetCommand::Broadcast {
         channel: Channel::Unreliable,
         payload,
     });
@@ -103,7 +103,7 @@ pub fn broadcast_presence(
 
 /// Receive presence messages from remote peers and update [`PresenceState`].
 pub fn receive_presence(
-    mut messages: EventReader<PeerMessageReceived>,
+    mut messages: MessageReader<PeerMessageReceived>,
     mut state:    ResMut<PresenceState>,
 ) {
     for PeerMessageReceived(raw) in messages.read() {

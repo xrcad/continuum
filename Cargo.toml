@@ -2,6 +2,8 @@
 members = [
     "crates/xrcad-kernel",
     "crates/xrcad-data",
+    "crates/xrcad-collab",
+    "crates/xrcad-net",
     "crates/xrcad-script",
     "crates/xrcad-input",
     "crates/xrcad-editor",
@@ -13,7 +15,6 @@ members = [
     "crates/xrcad-io-iges",
     "crates/xrcad-io-obj",
     "crates/xrcad",
-    "crates/xrcad-net",
     "crates/xrcad-server",
 ]
 resolver = "2"
@@ -24,24 +25,35 @@ edition = "2024"
 license = "MIT OR Apache-2.0 OR CC0-1.0"
 
 [workspace.dependencies]
-bevy = "0.18"
-uuid = { version = "1", features = ["v4"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-ewebsock = "0.8"
+bevy        = "0.18"
+uuid        = { version = "1",   features = ["v4"] }
+serde       = { version = "1",   features = ["derive"] }
+serde_json  = "1"
+ewebsock    = "0.8"
+postcard    = { version = "1",   features = ["alloc"] }
+thiserror   = "2"
+tracing     = "0.1"
+
+# WASM bindings
+wasm-bindgen         = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys               = "0.3"
+web-sys              = "0.3"
+
 xrcad-kernel = { path = "crates/xrcad-kernel" }
-xrcad-data = { path = "crates/xrcad-data" }
+xrcad-data   = { path = "crates/xrcad-data" }
+xrcad-collab = { path = "crates/xrcad-collab" }
+xrcad-net    = { path = "crates/xrcad-net" }
 xrcad-script = { path = "crates/xrcad-script" }
-xrcad-input = { path = "crates/xrcad-input" }
+xrcad-input  = { path = "crates/xrcad-input" }
 xrcad-editor = { path = "crates/xrcad-editor" }
 xrcad-viewer = { path = "crates/xrcad-viewer" }
-xrcad-ui = { path = "crates/xrcad-ui" }
+xrcad-ui     = { path = "crates/xrcad-ui" }
 xrcad-widgets = { path = "crates/xrcad-widgets" }
-xrcad-xr = { path = "crates/xrcad-xr" }
+xrcad-xr     = { path = "crates/xrcad-xr" }
 xrcad-io-step = { path = "crates/xrcad-io-step" }
 xrcad-io-iges = { path = "crates/xrcad-io-iges" }
-xrcad-io-obj = { path = "crates/xrcad-io-obj" }
-xrcad-net = { path = "crates/xrcad-net" }
+xrcad-io-obj  = { path = "crates/xrcad-io-obj" }
 
 # Compile with Performance Optimizations:
 # https://bevyengine.org/learn/book/getting-started/setup/#compile-with-performance-optimizations

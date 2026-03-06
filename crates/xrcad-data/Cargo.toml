@@ -1,12 +1,27 @@
 [package]
-name = "xrcad-data"
+name        = "xrcad-data"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "xrcad persistence: B-Rep registry and git-backed op log storage"
 
 [dependencies]
-bevy = { workspace = true }
-xrcad-kernel = { workspace = true }
+# ── workspace ────────────────────────────────────────────────────────────────
+bevy.workspace      = true
+serde.workspace     = true
+thiserror.workspace = true
+tracing.workspace   = true
+
+# ── sibling crates ───────────────────────────────────────────────────────────
+xrcad-kernel.workspace = true
+xrcad-collab.workspace = true
+
+# ── WASM bindings (calls isomorphic-git via window.xrcadGit) ─────────────────
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen         = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+js-sys               = { workspace = true }
+web-sys              = { workspace = true, features = ["Window"] }
 
 [lints]
 workspace = true

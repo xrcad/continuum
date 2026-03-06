@@ -4,7 +4,9 @@
 //! - **Presence** — cursor positions, viewports, display names (unreliable, LWW)
 //! - **OpLog** — causally ordered document operations with vector clock tracking
 //! - **SessionManager** — peer registry, join/leave lifecycle
-//! - **GitCommitter** — periodic commit of op batches to a git repository (native only)
+//!
+//! Persistence (git commits) is handled by `xrcad-data`, which listens for
+//! [`OpApplied`] events emitted by this crate.
 //!
 //! # Usage
 //!
@@ -28,19 +30,12 @@
 //! ```
 
 use bevy::prelude::*;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-
-use xrcad_net::PeerId;
 
 pub mod doc_op;
 pub mod op_log;
 pub mod presence;
 pub mod session;
 pub mod vector_clock;
-
-#[cfg(not(target_arch = "wasm32"))]
-pub mod git_committer;
 
 pub use doc_op::{ConflictOutcome, DocOp};
 pub use op_log::OpEnvelope;
@@ -53,22 +48,8 @@ pub use vector_clock::VectorClock;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Configuration for [`XrcadCollabPlugin`].
-#[derive(Debug, Clone)]
-pub struct CollabConfig {
-    /// Commit a batch to git after this many ops accumulate. Default: 50.
-    pub git_commit_threshold: usize,
-    /// Also commit if this many seconds pass with uncommitted ops. Default: 60.
-    pub git_commit_interval_secs: u64,
-}
-
-impl Default for CollabConfig {
-    fn default() -> Self {
-        Self {
-            git_commit_threshold:     50,
-            git_commit_interval_secs: 60,
-        }
-    }
-}
+#[derive(Resource, Debug, Clone, Default)]
+pub struct CollabConfig {}
 
 /// Add to your Bevy [`App`] alongside [`xrcad_net::XrcadNetPlugin`].
 pub struct XrcadCollabPlugin {
@@ -88,9 +69,9 @@ impl Plugin for XrcadCollabPlugin {
             .insert_resource(SessionManager::default())
             .insert_resource(op_log::OpLog::default())
             .insert_resource(presence::PresenceState::default())
-            .add_event::<OpApplied>()
-            .add_event::<OpConflict>()
-            .add_event::<SendDocOp>()
+            .add_message::<OpApplied>()
+            .add_message::<OpConflict>()
+            .add_message::<SendDocOp>()
             .add_systems(Update, (
                 presence::broadcast_presence,
                 presence::receive_presence,
@@ -99,9 +80,6 @@ impl Plugin for XrcadCollabPlugin {
                 session::handle_peer_connected,
                 session::handle_peer_disconnected,
             ));
-
-        #[cfg(not(target_arch = "wasm32"))]
-        git_committer::register(app, &self.config);
     }
 }
 
@@ -111,14 +89,14 @@ impl Plugin for XrcadCollabPlugin {
 
 /// A [`DocOp`] has been applied to the local document. Other systems (the renderer,
 /// the kernel) listen for this to update their state.
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct OpApplied {
     pub envelope: OpEnvelope,
 }
 
 /// Two concurrent ops are topologically incompatible. The op has been buffered but
 /// not applied. The UI should surface this to the user.
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct OpConflict {
     pub local_op:  DocOp,
     pub remote_op: DocOp,
@@ -130,9 +108,9 @@ pub struct OpConflict {
 /// ```rust,no_run
 /// # use bevy::prelude::*;
 /// # use xrcad_collab::{SendDocOp, DocOp};
-/// fn send_chat(mut writer: EventWriter<SendDocOp>) {
+/// fn send_chat(mut writer: MessageWriter<SendDocOp>) {
 ///     writer.send(SendDocOp(DocOp::Chat { text: "hello!".into() }));
 /// }
 /// ```
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct SendDocOp(pub DocOp);

@@ -22,10 +22,34 @@ use axum::{
     response::IntoResponse,
     routing::get,
 };
+use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use tower_http::services::ServeDir;
 use uuid::Uuid;
-use xrcad_net::messages::{ClientMsg, ServerMsg};
+
+// ── Relay protocol types ──────────────────────────────────────────────────────
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PeerCameraState {
+    pub peer_id:   Uuid,
+    pub target:    [f32; 3],
+    pub azimuth:   f32,
+    pub elevation: f32,
+    pub distance:  f32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum ClientMsg {
+    Join { peer_id: Uuid },
+    Camera(PeerCameraState),
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum ServerMsg {
+    PeerJoined(Uuid),
+    PeerLeft(Uuid),
+    Camera(PeerCameraState),
+}
 
 // ── Shared state ─────────────────────────────────────────────────────────────
 

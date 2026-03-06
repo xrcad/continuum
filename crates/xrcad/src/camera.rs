@@ -4,7 +4,6 @@ use std::f32::consts::FRAC_PI_2;
 
 use bevy::prelude::*;
 use xrcad_input::{OrbitDelta, PanDelta};
-use xrcad_net::LocalCameraState;
 
 /// Fraction of velocity remaining after one second of coasting (no touch input).
 /// 0.01 means ~1 % remains after 1 s, giving a natural ~0.5 s deceleration.
@@ -60,21 +59,8 @@ pub struct OrbitCameraPlugin;
 
 impl Plugin for OrbitCameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (update_camera, publish_local_camera_state).chain());
+        app.add_systems(Update, update_camera);
     }
-}
-
-/// Writes the local camera state into [`LocalCameraState`] so that
-/// `xrcad-net` can broadcast it without creating a circular crate dependency.
-fn publish_local_camera_state(
-    cameras: Query<&OrbitCamera>,
-    mut local: ResMut<LocalCameraState>,
-) {
-    let Ok(cam) = cameras.single() else { return };
-    local.target = cam.target;
-    local.azimuth = cam.azimuth;
-    local.elevation = cam.elevation;
-    local.distance = cam.distance;
 }
 
 /// Reads `OrbitDelta` and `PanDelta` events, applies them as velocity, and

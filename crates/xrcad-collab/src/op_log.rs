@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use xrcad_net::{Channel, NetCommand, PeerId, PeerMessageReceived};
+use xrcad_net::{PeerId, PeerMessageReceived};
 
 use crate::{
     doc_op::DocOp,
@@ -115,7 +115,7 @@ impl OpLog {
 
 /// Receive raw reliable-channel messages and enqueue any [`ColabMsg::Op`]s.
 pub fn receive_ops(
-    mut messages: EventReader<PeerMessageReceived>,
+    mut messages: MessageReader<PeerMessageReceived>,
     mut log:      ResMut<OpLog>,
 ) {
     for PeerMessageReceived(raw) in messages.read() {
@@ -134,13 +134,13 @@ pub fn receive_ops(
 /// Fires an [`OpApplied`] event for each one so other systems can react.
 pub fn apply_ready_ops(
     mut log:     ResMut<OpLog>,
-    mut applied: EventWriter<OpApplied>,
+    mut applied: MessageWriter<OpApplied>,
 ) {
     for env in log.drain_ready() {
         tracing::debug!("applying op: {}", env.summary());
         let event_env = env.clone();
         log.applied.push(env);
-        applied.send(OpApplied { envelope: event_env });
+        applied.write(OpApplied { envelope: event_env });
     }
 }
 

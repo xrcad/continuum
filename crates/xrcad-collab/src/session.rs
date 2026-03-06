@@ -42,7 +42,7 @@ impl SessionManager {
 // ─────────────────────────────────────────────────────────────────────────────
 
 pub fn handle_peer_connected(
-    mut events:  EventReader<PeerConnected>,
+    mut events:  MessageReader<PeerConnected>,
     mut manager: ResMut<SessionManager>,
 ) {
     for ev in events.read() {
@@ -52,7 +52,7 @@ pub fn handle_peer_connected(
 }
 
 pub fn handle_peer_disconnected(
-    mut events:  EventReader<PeerDisconnected>,
+    mut events:  MessageReader<PeerDisconnected>,
     mut manager: ResMut<SessionManager>,
 ) {
     for ev in events.read() {

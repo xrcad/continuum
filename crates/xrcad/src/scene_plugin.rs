@@ -7,21 +7,16 @@ use bevy::{
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
 use xrcad_input::InputPlugins;
-use xrcad_net::{LocalCameraState, NetPlugin};
 
 use crate::camera::{OrbitCamera, OrbitCameraPlugin};
-use crate::peer_markers::PeerMarkerPlugin;
 
 pub struct ScenePlugin;
 
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(LocalCameraState::default())
-            .add_plugins((
+        app.add_plugins((
                 InputPlugins::new().with_touch().with_mouse(),
                 OrbitCameraPlugin,
-                NetPlugin,
-                PeerMarkerPlugin,
             ))
             .add_systems(Startup, setup)
             .add_systems(Update, rotate);
