@@ -131,7 +131,7 @@
 
           # Auto-fetch WASM files on every `nix-on-droid switch` / `home-manager switch`
           # if the directory doesn't exist yet.  Re-run xrcad-fetch-wasm manually to update.
-          home.activation.xrcad-fetch-wasm = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          home.activation.xrcad-fetch-wasm = config.lib.dag.entryAfter [ "writeBoundary" ] ''
             if [ ! -d "${cfg.wasmDir}" ]; then
               $DRY_RUN_CMD ${self.packages.${pkgs.system}.xrcad-fetch-wasm}/bin/xrcad-fetch-wasm
             fi
