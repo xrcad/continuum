@@ -20,6 +20,14 @@ const SERVICE_TYPE: &str = "_xrcad._tcp.local.";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Bundles the local peer's stable identity, human-readable name, and the
+/// session ID it is advertising. Passed to helpers that need all three.
+struct LocalContext {
+    peer_id: PeerId,
+    display_name: String,
+    session_id: SessionId,
+}
+
 pub(super) async fn run_coordinator(
     local_peer_id: PeerId,
     local_display_name: String,
@@ -27,6 +35,11 @@ pub(super) async fn run_coordinator(
     inbound_tx: mpsc::UnboundedSender<NetInbound>,
     mut outbound_rx: mpsc::UnboundedReceiver<NetOutbound>,
 ) {
+    let local = LocalContext {
+        peer_id: local_peer_id,
+        display_name: local_display_name,
+        session_id,
+    };
     // ── TCP listener ──────────────────────────────────────────────────────────
     let listener = match TcpListener::bind("0.0.0.0:0").await {
         Ok(l) => l,
@@ -47,13 +60,13 @@ pub(super) async fn run_coordinator(
         }
     };
 
-    let instance_name = local_peer_id.0.to_string();
+    let instance_name = local.peer_id.0.to_string();
     let hostname = format!("{}.local.", instance_name);
-    let peer_id_str = local_peer_id.0.to_string();
-    let session_id_str = session_id.0.to_string();
+    let peer_id_str = local.peer_id.0.to_string();
+    let session_id_str = local.session_id.0.to_string();
     let properties = [
         ("peer_id", peer_id_str.as_str()),
-        ("display", local_display_name.as_str()),
+        ("display", local.display_name.as_str()),
         ("session_id", session_id_str.as_str()),
     ];
 
@@ -186,9 +199,7 @@ pub(super) async fn run_coordinator(
                     ServiceEvent::ServiceResolved(info) => {
                         handle_resolved(
                             &info,
-                            local_peer_id,
-                            &local_display_name,
-                            session_id,
+                            &local,
                             &active_peers,
                             &mut connecting,
                             &mut fullname_map,
@@ -209,9 +220,11 @@ pub(super) async fn run_coordinator(
             // Incoming TCP connection → spawn peer task.
             Some(stream) = listener_rx.recv() => {
                 let evt_tx = peer_event_tx.clone();
-                let name = local_display_name.clone();
+                let name = local.display_name.clone();
+                let peer_id = local.peer_id;
+                let session_id = local.session_id;
                 tokio::spawn(async move {
-                    run_peer(stream, local_peer_id, name, session_id, evt_tx).await;
+                    run_peer(stream, peer_id, name, session_id, evt_tx).await;
                 });
             }
         }
@@ -236,9 +249,7 @@ fn encode_payload(channel: Channel, payload: &[u8]) -> Vec<u8> {
 /// fullname mapping, notify Bevy, and spawn an outbound connection if needed.
 fn handle_resolved(
     info: &ResolvedService,
-    local_peer_id: PeerId,
-    local_display_name: &str,
-    session_id: SessionId,
+    local: &LocalContext,
     active_peers: &HashMap<PeerId, mpsc::UnboundedSender<PeerCmd>>,
     connecting: &mut HashSet<PeerId>,
     fullname_map: &mut HashMap<String, PeerId>,
@@ -255,7 +266,7 @@ fn handle_resolved(
     let peer_id = PeerId(uuid);
 
     // Skip our own advertisement.
-    if peer_id == local_peer_id {
+    if peer_id == local.peer_id {
         return;
     }
 
@@ -293,7 +304,9 @@ fn handle_resolved(
 
     connecting.insert(peer_id);
     let evt_tx = peer_event_tx.clone();
-    let name = local_display_name.to_string();
+    let name = local.display_name.clone();
+    let local_peer_id = local.peer_id;
+    let session_id = local.session_id;
 
     tokio::spawn(async move {
         match TcpStream::connect(sock_addr).await {
