@@ -89,7 +89,17 @@
         };
       };
 
-    # ── home-manager module (nix-on-droid, or regular HM on any machine) ───────
+    # ── nix-on-droid module ─────────────────────────────────────────────────────
+    # Import the home-manager module into the home-manager sub-scope that
+    # nix-on-droid exposes.  In nix-on-droid top-level modules, home-manager
+    # options live under home-manager.config, so we bridge them here.
+    # Usage: add xrcad.nixOnDroidModules.xrcad-server to your modules list,
+    # then configure via home-manager.config.services.xrcad-server.*.
+    nixOnDroidModules.xrcad-server = {
+      home-manager.config.imports = [ self.homeManagerModules.xrcad-server ];
+    };
+
+    # ── home-manager module (standalone HM or imported via nixOnDroidModules) ──
     homeManagerModules.xrcad-server = { config, lib, pkgs, ... }:
       let cfg = config.services.xrcad-server; in {
         options.services.xrcad-server = {
