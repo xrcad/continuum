@@ -109,6 +109,12 @@ async fn handle_socket(mut socket: WebSocket, room_id: String, rooms: Rooms) {
                                 peer = Some((id_str.clone(), uuid_bytes));
                                 let mut guard = rooms.lock().unwrap();
                                 let room = guard.entry(room_id.clone()).or_default();
+                                // Tell the newcomer about every peer already in the room.
+                                for (existing_id, _, _) in room.iter() {
+                                    let Ok(text) = serde_json::to_string(&ServerMsg::PeerJoined(existing_id.clone())) else { continue };
+                                    let _ = tx.send(Message::Text(text.into()));
+                                }
+                                // Tell everyone else about the newcomer.
                                 broadcast_text(room, &id_str, &ServerMsg::PeerJoined(id_str.clone()));
                                 room.push((id_str, uuid_bytes, tx.clone()));
                             }
