@@ -2,9 +2,7 @@
   description = "xrcad — collaborative CAD in the browser";
 
   inputs = {
-    # Pinned to last nixos-unstable commit before glibc 2.40→2.42 bump that
-    # broke tcgetattr/PTY on Android (nix-community/nix-on-droid#495).
-    nixpkgs.url     = "github:NixOS/nixpkgs/88d3861";
+    nixpkgs.url     = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
