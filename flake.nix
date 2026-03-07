@@ -21,6 +21,12 @@
           # Build only the server crate — no WASM, no GUI deps.
           cargoBuildFlags = [ "-p" "xrcad-server" ];
           doCheck         = false;
+
+          # Android kernels don't support the Linux namespaces nix uses for
+          # its build sandbox.  This per-derivation flag lets the package build
+          # on nix-on-droid without requiring a daemon restart to pick up
+          # sandbox = false from nix.conf.
+          __noChroot = true;
         };
 
         # Script that downloads the pre-built WASM app from the gh-pages branch
