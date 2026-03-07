@@ -96,6 +96,14 @@
     # Usage: add xrcad.nixOnDroidModules.xrcad-server to your modules list,
     # then configure via home-manager.config.services.xrcad-server.*.
     nixOnDroidModules.xrcad-server = {
+      # Android kernels don't support the Linux namespacing that Nix uses for
+      # its build sandbox, so builds fail with "Permission denied" on PTY.
+      # Disabling the sandbox and syscall filter is standard for nix-on-droid.
+      nix.extraOptions = ''
+        sandbox = false
+        filter-syscalls = false
+      '';
+
       home-manager.config.imports = [ self.homeManagerModules.xrcad-server ];
     };
 
