@@ -108,6 +108,7 @@
       nix.extraOptions = ''
         sandbox = false
         filter-syscalls = false
+        use-pty = false
       '';
 
       home-manager.config.imports = [ self.homeManagerModules.xrcad-server ];
