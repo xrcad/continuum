@@ -45,7 +45,7 @@ pub enum StorageError {
 /// All errors are mapped to [`StorageError`] at the implementation boundary.
 pub trait StorageBackend: Send + Sync {
     /// Initialise a new repository if one does not already exist.
-    fn init(&self) -> impl Future<Output = Result<(), StorageError>> + Send;
+    fn init(&self) -> impl Future<Output = Result<(), StorageError>>;
 
     /// Append `ops_content` to the ops log and create a git commit.
     ///
@@ -55,10 +55,10 @@ pub trait StorageBackend: Send + Sync {
         &self,
         message: &str,
         ops_content: &str,
-    ) -> impl Future<Output = Result<(), StorageError>> + Send;
+    ) -> impl Future<Output = Result<(), StorageError>>;
 
     /// Returns `true` if a repository has already been initialised.
-    fn is_initialised(&self) -> impl Future<Output = bool> + Send;
+    fn is_initialised(&self) -> impl Future<Output = bool>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
