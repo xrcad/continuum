@@ -36,6 +36,7 @@ jobs:
           cp -r assets out/
           cp wasm/index.html out/
           cp wasm/restart-audio-context.js out/
+          cp wasm/xrcad-git.js out/
 
       - name: Verify out/ directory
         run: |
