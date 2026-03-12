@@ -10,21 +10,11 @@
  * custom headers — use the coi-serviceworker.js approach (see sw.js).
  */
 
-import { configure } from '@zenfs/core';
-import { OPFS } from '@zenfs/dom';
+import LightningFS from '@isomorphic-git/lightning-fs';
 import git from 'isomorphic-git';
 
-// Configure ZenFS once at startup to use OPFS as the filesystem backend.
-// OPFS is persistent, sandboxed to the origin, and requires no user gesture.
-let fs;
-try {
-    await configure({ backend: OPFS });
-
-    // Import the ZenFS fs module AFTER configure() resolves.
-    ({ fs } = await import('@zenfs/core'));
-} catch (err) {
-    console.error('[xrcad-git] failed to initialise ZenFS/OPFS:', err);
-}
+const _fs = new LightningFS('xrcad');
+const fs = { promises: _fs.promises };
 
 window.xrcadGit = {
     /**
