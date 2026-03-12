@@ -31,6 +31,12 @@ jobs:
           wasm-bindgen --out-dir ./out --out-name bevy_game --target web \
             target/wasm32-unknown-unknown/release/xrcad.wasm
 
+      - name: Bundle xrcad-git.js
+        working-directory: wasm
+        run: |
+          npm install
+          npx esbuild xrcad-git.js --bundle --format=esm --outfile=../out/xrcad-git.js
+
       - name: Copy assets and HTML
         run: |
           cp -r assets out/
