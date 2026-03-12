@@ -16,10 +16,15 @@ import git from 'isomorphic-git';
 
 // Configure ZenFS once at startup to use OPFS as the filesystem backend.
 // OPFS is persistent, sandboxed to the origin, and requires no user gesture.
-await configure({ backend: OPFS });
+let fs;
+try {
+    await configure({ backend: OPFS });
 
-// Import the ZenFS fs module AFTER configure() resolves.
-const { fs } = await import('@zenfs/core');
+    // Import the ZenFS fs module AFTER configure() resolves.
+    ({ fs } = await import('@zenfs/core'));
+} catch (err) {
+    console.error('[xrcad-git] failed to initialise ZenFS/OPFS:', err);
+}
 
 window.xrcadGit = {
     /**
@@ -27,7 +32,13 @@ window.xrcadGit = {
      * @param {string} dir  OPFS path, e.g. "/xrcad/my-model"
      */
     async init(dir) {
-        await git.init({ fs, dir });
+        if (!fs) throw new Error('[xrcad-git] filesystem not available; OPFS initialisation failed');
+        try {
+            await git.init({ fs, dir });
+        } catch (err) {
+            console.error('[xrcad-git] init failed:', err);
+            throw err;
+        }
     },
 
     /**
@@ -37,14 +48,20 @@ window.xrcadGit = {
      * @param {string} opsContent  Complete text content of ops.log
      */
     async commit(dir, message, opsContent) {
-        await fs.promises.writeFile(`${dir}/ops.log`, opsContent, 'utf8');
-        await git.add({ fs, dir, filepath: 'ops.log' });
-        await git.commit({
-            fs,
-            dir,
-            message,
-            author: { name: 'xrcad', email: 'xrcad@local' },
-        });
+        if (!fs) throw new Error('[xrcad-git] filesystem not available; OPFS initialisation failed');
+        try {
+            await fs.promises.writeFile(`${dir}/ops.log`, opsContent, 'utf8');
+            await git.add({ fs, dir, filepath: 'ops.log' });
+            await git.commit({
+                fs,
+                dir,
+                message,
+                author: { name: 'xrcad', email: 'xrcad@local' },
+            });
+        } catch (err) {
+            console.error('[xrcad-git] commit failed:', err);
+            throw err;
+        }
     },
 
     /**
@@ -53,6 +70,7 @@ window.xrcadGit = {
      * @returns {Promise<boolean>}
      */
     async isInitialised(dir) {
+        if (!fs) return false;
         try {
             await git.resolveRef({ fs, dir, ref: 'HEAD' });
             return true;
