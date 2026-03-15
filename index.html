@@ -19,8 +19,6 @@
       height: 100%;
     }
   </style>
-
-</head>
 </head>
 
 <body>
@@ -30,10 +28,10 @@
     To use a hosted relay from GitHub Pages, append:  ?relay=wss://YOUR-RELAY.onrender.com
   -->
   <script type="module">
-    // xrcad-git.js must load first: it sets
+    // xrcad-git.js must load first: it configures ZenFS + OPFS and sets
     // window.xrcadGit before the WASM module can call into it.
     // OPFS requires COOP/COEP headers — see sw.js (coi-serviceworker).
-    // import './xrcad-git.js'
+    import './xrcad-git.js'
     import './restart-audio-context.js'
     import init from './bevy_game.js'
 
