@@ -16,7 +16,7 @@
 pub mod backend;
 pub mod brep;
 
-use instant::Instant;
+use web_time::Instant;
 use std::time::Duration;
 
 use bevy::prelude::*;
