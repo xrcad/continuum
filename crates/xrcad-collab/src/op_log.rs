@@ -25,7 +25,7 @@ pub struct OpEnvelope {
     /// All ops from peers listed in `deps` must be applied before this op.
     pub deps: VectorClock,
     /// Wall-clock timestamp — informational only, never used for ordering.
-    pub timestamp_ms: i64,
+    pub timestamp_ms: u64,
     /// The operation payload.
     pub op: DocOp,
 }
