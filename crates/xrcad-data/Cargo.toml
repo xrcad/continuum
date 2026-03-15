@@ -8,6 +8,7 @@ description = "xrcad persistence: B-Rep registry and git-backed op log storage"
 [dependencies]
 # ── workspace ────────────────────────────────────────────────────────────────
 bevy.workspace      = true
+instant.workspace = true
 serde.workspace     = true
 thiserror.workspace = true
 tracing.workspace   = true
