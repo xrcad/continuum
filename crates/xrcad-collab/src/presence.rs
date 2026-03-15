@@ -8,7 +8,9 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use xrcad_net::{Channel, LocalPeer, NetCommand, PeerId, PeerMessageReceived};
+
 use crate::time::now_ms;
+
 const PRESENCE_TIMEOUT_MS: u64 = 3_000;
 
 // ─────────────────────────────────────────────────────────────────────────────

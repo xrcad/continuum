@@ -6,8 +6,8 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use xrcad_net::{PeerId, PeerMessageReceived};
 
-use crate::{OpApplied, doc_op::DocOp, vector_clock::VectorClock};
 use crate::time::now_ms;
+use crate::{OpApplied, doc_op::DocOp, vector_clock::VectorClock};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OpEnvelope
@@ -136,4 +136,3 @@ pub fn apply_ready_ops(mut log: ResMut<OpLog>, mut applied: MessageWriter<OpAppl
         });
     }
 }
-

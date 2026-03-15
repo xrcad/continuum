@@ -35,15 +35,15 @@ pub mod doc_op;
 pub mod op_log;
 pub mod presence;
 pub mod session;
-pub mod vector_clock;
 pub mod time;
+pub mod vector_clock;
 
 pub use doc_op::{ConflictOutcome, DocOp};
 pub use op_log::OpEnvelope;
 pub use presence::{LocalViewport, PeerPresence, PresenceMsg, PresenceState, Viewport};
 pub use session::SessionManager;
-pub use vector_clock::VectorClock;
 pub use time::now_ms;
+pub use vector_clock::VectorClock;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin
