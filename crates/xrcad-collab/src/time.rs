@@ -1,4 +1,8 @@
-
+//! Cross platform time utilities
+//!
+//! WASM uses js_sys::Date::now()
+//! Native uses std::time::SystemTime
+//!
 pub fn now_ms() -> u64 {
     #[cfg(target_arch = "wasm32")]
     {js_sys::Date::now() as u64}
