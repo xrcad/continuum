@@ -17,6 +17,7 @@ pub mod backend;
 pub mod brep;
 
 use std::time::Duration;
+use instant::Instant;
 
 use bevy::prelude::*;
 use xrcad_collab::OpApplied;
@@ -36,7 +37,7 @@ pub struct PendingBatch {
     /// Accumulated ops.log lines since the last commit.
     pub lines: Vec<String>,
     /// Wall-clock time when the first op in the current batch arrived.
-    pub first_op_at: Option<std::time::Instant>,
+    pub first_op_at: Option<Instant>,
     /// Content of ops.log committed so far (prefix for the next commit).
     pub committed_log: String,
 }
@@ -108,7 +109,7 @@ fn accumulate_and_commit(
             event.envelope.op.summary(),
         );
         if batch.first_op_at.is_none() {
-            batch.first_op_at = Some(std::time::Instant::now());
+            batch.first_op_at = Some(Instant::now());
         }
         batch.lines.push(line);
     }

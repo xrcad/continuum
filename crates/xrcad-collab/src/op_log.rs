@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use xrcad_net::{PeerId, PeerMessageReceived};
 
 use crate::{OpApplied, doc_op::DocOp, vector_clock::VectorClock};
+use crate::time::now_ms;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OpEnvelope
@@ -78,7 +79,7 @@ impl OpLog {
             peer_id,
             seq: self.local_seq,
             deps: self.clock.clone(),
-            timestamp_ms: chrono_millis(),
+            timestamp_ms: now_ms(),
             op,
         }
     }
@@ -136,14 +137,3 @@ pub fn apply_ready_ops(mut log: ResMut<OpLog>, mut applied: MessageWriter<OpAppl
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-fn chrono_millis() -> i64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as i64)
-        .unwrap_or(0)
-}

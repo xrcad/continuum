@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use xrcad_net::{Channel, LocalPeer, NetCommand, PeerId, PeerMessageReceived};
-
+use crate::time::now_ms;
 const PRESENCE_TIMEOUT_MS: u64 = 3_000;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -134,14 +134,4 @@ pub fn receive_presence(
         }
     }
     state.expire();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-fn now_ms() -> u64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0)
 }
