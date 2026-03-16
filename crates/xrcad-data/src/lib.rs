@@ -16,8 +16,8 @@
 pub mod backend;
 pub mod brep;
 
-use web_time::Instant;
 use std::time::Duration;
+use web_time::Instant;
 
 use bevy::prelude::*;
 use xrcad_collab::OpApplied;
